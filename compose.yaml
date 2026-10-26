@@ -1,0 +1,82 @@
+name: pulso
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pulso}
+      POSTGRES_USER: ${POSTGRES_USER:-pulso}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pulso}
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+    command: ["/usr/local/bin/migrate"]
+    environment: &application-environment
+      PULSO_ENV: ${PULSO_ENV:-development}
+      PULSO_DATABASE_URL: postgres://${POSTGRES_USER:-pulso}:${POSTGRES_PASSWORD:-pulso}@postgres:5432/${POSTGRES_DB:-pulso}?sslmode=disable
+      PULSO_SHUTDOWN_TIMEOUT: ${PULSO_SHUTDOWN_TIMEOUT:-10s}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+    environment:
+      <<: *application-environment
+      PULSO_API_ADDR: :8080
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+    command: ["/usr/local/bin/worker"]
+    environment: *application-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - ./web:/app
+      - web-node-modules:/app/node_modules
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  web-node-modules:
