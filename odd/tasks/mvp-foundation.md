@@ -19,10 +19,10 @@ S6. "CI básico para formato, lint, compilación y pruebas." Include OpenAPI doc
 ## Tasks
 
 - [x] T1 (S1, S4, S5) — inline — Go API/worker foundation, configuration, health/readiness, tests, OpenAPI — commit: `c5a0c88`.
-- [x] T2 (S2) — inline — Vue SPA foundation and focused smoke/protected-navigation tests — commits: `0ce6580`, correction recording after commit.
+- [x] T2 (S2) — inline — Vue SPA foundation and focused smoke/protected-navigation tests — commits: `0ce6580`, `41bfb5c`.
 - [x] T3 (S1, S3, S4) — inline — PostgreSQL migration/sqlc and Docker Compose services — commit: `e3337c2`.
 - [x] T4 (S6) — inline — README, quality commands and CI — commit: `64f96f5`.
-- [ ] T5 (S1-S6) — inline checks plus delegated independent verification for high-risk item 5 (delivery/environment) — full feature verification — commit: evidence pending.
+- [x] T5 (S1-S6) — inline checks plus delegated independent verification for high-risk items 1 (migration) and 5 (delivery/environment) — full feature verification — evidence: independent PASS after one bounded S2 correction.
 
 ## Log
 
@@ -45,3 +45,5 @@ L7. T4 evidence: `make generate-check`, `make check`, `make compose-config`, and
 L8. Independent item-1/item-5 verification at `64f96f5` returned UNMET for S2 only: no Pinia authentication state or protected navigation existed. S1 and S3-S6 passed, including isolated runtime and database-unavailability probes. Reopen only T2 for one bounded correction with the verifier's protected-navigation regression tests. Advisory: add `web/.dockerignore` so host dependencies and builds do not enter the image context. Scratch `/tmp/pulso-verify.VMVlvB` and Compose project `pulsoverifyvmvlvb` await parent cleanup.
 
 L9. Correction evidence: the verifier's router regression test was RED because `src/app/auth` did not exist. Added minimal Pinia authentication state, a `requiresAuth` navigation guard, and a protected monitors foundation route; this is navigation groundwork, not backend authentication. Both regression tests went GREEN, the complete `make check` passed with 3 frontend tests, and `git diff --check` passed. Added the frontend Docker ignore rules from the advisory. No additional blocker scope was introduced.
+
+L10. Final verification: the independent bounded recheck at `41bfb5c` returned PASS for S2 with both real-router rules observed and no remaining blockers in scope. The Docker advisory was resolved; build context decreased from 76.8 MB to 201.2 kB and the image built successfully. Prior independent verdicts remain MET for S1 and S3-S6. Parent spot check reran `npx vitest run src/app/router.test.ts`: 1 file and 2 tests passed. Scratch directories, isolated Compose resources, and the recheck image were cleaned. RDD remained disabled. Delivery 0 is complete; push, PR creation, merge, and branch deletion remain user decisions.
