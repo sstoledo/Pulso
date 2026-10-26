@@ -10,6 +10,23 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      PULSO_DATABASE_URL: postgres://pulso:pulso@localhost:55432/pulso?sslmode=disable
+      PULSO_TEST_DATABASE_URL: postgres://pulso:pulso@localhost:55432/pulso?sslmode=disable
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: pulso
+          POSTGRES_USER: pulso
+          POSTGRES_PASSWORD: pulso
+        ports:
+          - "55432:5432"
+        options: >-
+          --health-cmd "pg_isready -U pulso -d pulso"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -30,6 +47,9 @@ jobs:
       - name: Install frontend dependencies
         working-directory: web
         run: npm ci
+
+      - name: Apply database migrations
+        run: make migrate
 
       - name: Verify generated database code
         run: make generate-check

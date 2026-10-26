@@ -3,10 +3,16 @@ info:
   title: Pulso API
   version: 0.1.0
   description: API for multi-organization service monitoring.
+servers:
+  - url: http://localhost:8080
+    description: Local development API
+security:
+  - cookieAuth: []
 paths:
   /healthz:
     get:
       operationId: getHealth
+      security: []
       summary: Report API process liveness
       tags: [System]
       responses:
@@ -19,6 +25,7 @@ paths:
   /readyz:
     get:
       operationId: getReadiness
+      security: []
       summary: Report API dependency readiness
       tags: [System]
       responses:
@@ -37,6 +44,7 @@ paths:
   /api/v1/auth/register:
     post:
       operationId: register
+      security: []
       summary: Register a user and create an owner organization
       tags: [Authentication]
       requestBody:
@@ -71,6 +79,7 @@ paths:
   /api/v1/auth/login:
     post:
       operationId: login
+      security: []
       summary: Log in and create a session
       tags: [Authentication]
       requestBody:
