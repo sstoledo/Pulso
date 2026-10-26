@@ -35,6 +35,22 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ShutdownTimeout != 10*time.Second {
 		t.Errorf("ShutdownTimeout = %s, want 10s", cfg.ShutdownTimeout)
 	}
+	if cfg.WebOrigin != "http://localhost:5173" {
+		t.Errorf("WebOrigin = %q", cfg.WebOrigin)
+	}
+	if cfg.CookieSecure {
+		t.Fatal("CookieSecure must default to false in development")
+	}
+}
+
+func TestLoadRejectsInvalidCookieSecure(t *testing.T) {
+	t.Setenv("PULSO_DATABASE_URL", "postgres://localhost/pulso")
+	t.Setenv("PULSO_COOKIE_SECURE", "sometimes")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected invalid cookie secure error")
+	}
 }
 
 func TestLoadRejectsInvalidShutdownTimeout(t *testing.T) {
