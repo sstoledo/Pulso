@@ -1,0 +1,54 @@
+openapi: 3.1.0
+info:
+  title: Pulso API
+  version: 0.1.0
+  description: API for multi-organization service monitoring.
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      summary: Report API process liveness
+      tags: [System]
+      responses:
+        "200":
+          description: The API process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /readyz:
+    get:
+      operationId: getReadiness
+      summary: Report API dependency readiness
+      tags: [System]
+      responses:
+        "200":
+          description: PostgreSQL is reachable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "503":
+          description: PostgreSQL is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnavailableStatus"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+      additionalProperties: false
+    UnavailableStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: unavailable
+      additionalProperties: false
