@@ -18,8 +18,8 @@ S6. "CI básico para formato, lint, compilación y pruebas." Include OpenAPI doc
 
 ## Tasks
 
-- [x] T1 (S1, S4, S5) — inline — Go API/worker foundation, configuration, health/readiness, tests, OpenAPI — commit: recording after commit.
-- [ ] T2 (S2) — inline — Vue SPA foundation and focused smoke test — commit: pending.
+- [x] T1 (S1, S4, S5) — inline — Go API/worker foundation, configuration, health/readiness, tests, OpenAPI — commit: `c5a0c88`.
+- [x] T2 (S2) — inline — Vue SPA foundation and focused smoke test — commit: recording after commit.
 - [ ] T3 (S1, S3, S4) — inline — PostgreSQL migration/sqlc and Docker Compose services — commit: pending.
 - [ ] T4 (S6) — inline — OpenAPI, README, formatting/lint and CI — commit: pending.
 - [ ] T5 (S1-S6) — inline checks plus delegated independent verification for high-risk item 5 (delivery/environment) — full feature verification — commit: evidence pending.
@@ -35,3 +35,5 @@ L3. 2026-10-26 — "Pr apilados a main, pero ojo cada feature./module/change tie
 Decision: one branch per feature/module/change. Independent branches are deleted after their PR merges. Stacked branches are all retained until the entire stack merges, then deleted together. No push, PR, merge, or branch deletion without user authorization.
 
 L4. T1 evidence: observed RED because config and httpx had no implementation; GREEN from `go test ./internal/platform/config ./internal/platform/httpx`; `go test ./...`, `go vet ./...`, and both binary builds passed. Runtime smoke returned `healthz` 200/`{"status":"ok"}`, `readyz` 503/`{"status":"unavailable"}` with PostgreSQL unavailable, and graceful shutdown succeeded. RDD is globally disabled; no native review started.
+
+L5. T2 evidence: observed RED because `App.vue` did not exist; GREEN from `npm test` (1 test). `npm run type-check`, `npm run lint`, `npm run build`, and `npm run format:check` passed. Prettier initially conflicted with Vue formatting rules; `eslint-config-prettier` now disables only overlapping stylistic lint rules while semantic lint remains enabled.
