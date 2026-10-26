@@ -17,8 +17,8 @@ S5. "Las respuestas de error tendrán un formato consistente y no mostrarán inf
 ## Tasks
 
 - [x] T1 (S1, S2) — inline on `feat/identity-persistence` — identity schema, sqlc queries, Argon2id and opaque-token primitives with unit tests — commit: `573d01c`.
-- [x] T2 (S1-S3, S5) — inline on `feat/identity-api` — transactional registration, session endpoints, membership authorization, consistent errors and PostgreSQL/API tests — commit: recording after commit.
-- [ ] T3 (S4) — inline on `feat/web-authentication` — Pinia session lifecycle, router guards, register/login/logout UI and tests — commit: pending.
+- [x] T2 (S1-S3, S5) — inline on `feat/identity-api` — transactional registration, session endpoints, membership authorization, consistent errors and PostgreSQL/API tests — commit: `6eee6ed`.
+- [x] T3 (S4) — inline on `feat/web-authentication` — Pinia session lifecycle, router guards, register/login/logout UI and tests — commit: recording after commit.
 - [ ] T4 (S5) — inline on `docs/identity-tenancy` — OpenAPI, README, Compose/CI integration wiring — commit: pending.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema), 2 (authentication/authorization) and 5 (CI/environment) — full feature verification — evidence: pending.
 
@@ -33,3 +33,5 @@ L3. RDD remains globally disabled, so no native review will be started. Independ
 L4. T1 evidence: password/token tests were RED because `internal/auth` had no implementation. After implementation, `go test ./internal/auth` passed correct/incorrect password verification, unique salts, malformed hashes, 32-byte opaque tokens, deterministic SHA-256 hashes, and uniqueness. Migration `00002` adds users, memberships and hashed sessions with foreign keys/uniqueness/checks; sqlc generation and the full Go test/vet commands passed. Runtime migration and transaction behavior remain T2 integration scope.
 
 L5. T2 evidence: service, HTTP and error-envelope tests were RED before implementation. Migration 2 applied to real PostgreSQL. `PULSO_TEST_DATABASE_URL=... go test -count=1 ./internal/auth` passed registration atomicity, owner membership, normalized login, hashed storage, expiry/revocation, cross-organization rejection, origin checks, secure/development cookies, login/logout/me and consistent errors. `make check` and `git diff --check` passed. A test-helper defect initially deleted identities before assertions; it was corrected to register cleanup with `t.Cleanup`, after which the unmodified production transaction passed. OpenAPI auth and organization contracts accompany the API change.
+
+L6. T3 evidence: store, router and login tests were RED before implementation; subsequent registration and API-client tests cover the same public rules. The full `make check` passed with 6 frontend test files and 12 tests, including session restoration/expiry, safe return paths, registration/login validation and 401 publication. A full Compose build passed register 201 through the Vite proxy, owner `/me` and organization responses, cross-organization 403, logout 204 and post-logout `/me` 401. Test identities were deleted and Compose stopped without removing volumes.
