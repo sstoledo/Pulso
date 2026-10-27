@@ -87,7 +87,8 @@ func ValidateRegistration(name, email, password string) (RegisterInput, error) {
 	if err != nil || address.Address != input.Email || len(input.Email) > 254 {
 		fields["email"] = "Enter a valid email address."
 	}
-	if len(password) < 12 || len(password) > 128 {
+	passwordLength := utf8.RuneCountInString(password)
+	if passwordLength < 12 || passwordLength > 128 {
 		fields["password"] = "Enter between 12 and 128 characters."
 	}
 	if len(fields) > 0 {

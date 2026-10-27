@@ -1,5 +1,5 @@
 # Pulso — Identity and tenancy
-Base: `2ddd166`. Branch stack: `feat/identity-persistence` → `feat/identity-api` → `feat/web-authentication` → `docs/identity-tenancy`, ultimately targeting `main` under the retained `stacked-to-main` policy.
+Base: `2ddd166`. Branch stack: `feat/identity-persistence` → `feat/identity-api` → `feat/web-authentication` → `docs/identity-tenancy` → `fix/identity-password-length`, ultimately targeting `main` under the retained `stacked-to-main` policy.
 Test runners: Go unit/integration tests with PostgreSQL, Vitest, type-check/lint/build, and authenticated API/SPA runtime probes.
 
 ## Specs
@@ -17,10 +17,10 @@ S5. "Las respuestas de error tendrán un formato consistente y no mostrarán inf
 ## Tasks
 
 - [x] T1 (S1, S2) — inline on `feat/identity-persistence` — identity schema, sqlc queries, Argon2id and opaque-token primitives with unit tests — commit: `573d01c`.
-- [x] T2 (S1-S3, S5) — inline on `feat/identity-api` — transactional registration, session endpoints, membership authorization, consistent errors and PostgreSQL/API tests — commit: `6eee6ed`.
+- [x] T2 (S1-S3, S5) — inline on `feat/identity-api` — transactional registration, session endpoints, membership authorization, consistent errors and PostgreSQL/API tests — commits: `6eee6ed`, `3517093`.
 - [x] T3 (S4) — inline on `feat/web-authentication` — Pinia session lifecycle, router guards, register/login/logout UI and tests — commit: `3af4c6f`.
-- [x] T4 (S5) — inline on `docs/identity-tenancy` — OpenAPI, README, Compose/CI integration wiring — commit: recording after commit.
-- [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema), 2 (authentication/authorization) and 5 (CI/environment) — full feature verification — evidence: pending.
+- [x] T4 (S5) — inline on `docs/identity-tenancy` — OpenAPI, README, Compose/CI integration wiring — commit: `767e497`.
+- [x] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema), 2 (authentication/authorization) and 5 (CI/environment) — full feature verification — evidence: independent PASS after one bounded Unicode-password correction.
 
 ## Log
 
@@ -37,3 +37,9 @@ L5. T2 evidence: service, HTTP and error-envelope tests were RED before implemen
 L6. T3 evidence: store, router and login tests were RED before implementation; subsequent registration and API-client tests cover the same public rules. The full `make check` passed with 6 frontend test files and 12 tests, including session restoration/expiry, safe return paths, registration/login validation and 401 publication. A full Compose build passed register 201 through the Vite proxy, owner `/me` and organization responses, cross-organization 403, logout 204 and post-logout `/me` 401. Test identities were deleted and Compose stopped without removing volumes.
 
 L7. T4 evidence: CI now starts PostgreSQL 17, applies migrations, and exposes the test database to `make check`. `make test-integration`, integration-enabled `make check`, `make generate-check`, and `make compose-config` passed. README documents registration, session/cookie policy, production origin/Secure settings, executable curl examples, and integration commands. Redocly initially failed missing servers/security declarations; after correction the document is valid. Four non-blocking recommended-rule warnings remain: no license declared, a localhost server URL, and no artificial 4xx responses for liveness/readiness.
+
+L8. Independent item-1/item-2/item-5 verification at `767e497` returned FAIL for S1 only: a valid 128-character Unicode password was rejected with 422 because backend `len` counted UTF-8 bytes. S2-S5 passed, including credential secrecy, invalid-credential parity, authorization, frontend flow, OpenAPI and state preservation. Reopen only T2 for one bounded correction. Align frontend UTF-16 `.length` with the same Unicode-code-point rule. Scratch `/tmp/opencode/pulso-identity-verify.c8Pxea`, Compose project `pulso-identity-verify-c8pxea`, and its images await parent cleanup.
+
+L9. Correction evidence: backend `é` boundaries and frontend 128-emoji registration were RED before the fix. Go now uses `utf8.RuneCountInString` and Vue uses `Array.from`, both counting Unicode code points. Focused tests are GREEN, real PostgreSQL integration passed, and integration-enabled `make check` passed with 13 frontend tests. An initial migration rerun raced PostgreSQL startup; waiting for `pg_isready` resolved the environment timing without a code change. Scratch resources from the independent verifier were cleaned.
+
+L10. Final verification: the independent bounded recheck at `3517093` returned PASS for S1. The original public HTTP case now returns 201 for exactly 128 `é` characters and the documented 422 envelope for 129. Backend and frontend use the same Unicode-code-point boundary; no S2-S5 reruns were needed after their prior MET verdicts. Parent spot check reran the focused Go boundary test successfully. Scratch directories, isolated Compose resources, and recheck images were cleaned. Delivery 1 is complete; push, PR creation, merge, and branch deletion remain user decisions.
