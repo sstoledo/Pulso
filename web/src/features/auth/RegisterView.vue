@@ -22,7 +22,8 @@ async function submit() {
   if (!validEmail(form.email)) {
     errors.email = 'Enter a valid email address.'
   }
-  if (form.password.length < 12 || form.password.length > 128) {
+  const passwordLength = Array.from(form.password).length
+  if (passwordLength < 12 || passwordLength > 128) {
     errors.password = 'Enter between 12 and 128 characters.'
   }
   if (Object.keys(errors).length > 0) {

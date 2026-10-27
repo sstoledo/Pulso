@@ -37,6 +37,25 @@ describe('RegisterView', () => {
     expect(authApi.register).not.toHaveBeenCalled()
   })
 
+  it('accepts exactly 128 Unicode characters', async () => {
+    vi.mocked(authApi.register).mockResolvedValue(identityFixture)
+    const wrapper = mount(RegisterView, { global: { plugins: [router] } })
+    const password = '😀'.repeat(128)
+    await wrapper.get('#name').setValue('Ada Lovelace')
+    await wrapper.get('#email').setValue('ada@example.com')
+    await wrapper.get('#password').setValue(password)
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(authApi.register).toHaveBeenCalledWith({
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      password,
+    })
+    expect(router.currentRoute.value.name).toBe('monitors')
+  })
+
   it('registers and opens the protected dashboard', async () => {
     vi.mocked(authApi.register).mockResolvedValue(identityFixture)
     const wrapper = mount(RegisterView, { global: { plugins: [router] } })
