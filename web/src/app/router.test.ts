@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { useAuthStore } from './auth'
 import { router } from './router'
+import { identityFixture } from '../test/fixtures'
 
 describe('protected navigation', () => {
   let removeProbeRoute: () => void
@@ -19,16 +20,21 @@ describe('protected navigation', () => {
 
   afterEach(() => removeProbeRoute())
 
-  it('redirects unauthenticated navigation home', async () => {
-    useAuthStore().isAuthenticated = false
+  it('redirects unauthenticated navigation to login with a return path', async () => {
+    const auth = useAuthStore()
+    auth.status = 'anonymous'
 
     await router.push('/protected-probe')
 
-    expect(router.currentRoute.value.name).toBe('home')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/protected-probe')
   })
 
   it('allows authenticated navigation', async () => {
-    useAuthStore().isAuthenticated = true
+    const auth = useAuthStore()
+    auth.user = identityFixture.user
+    auth.organizations = identityFixture.organizations
+    auth.status = 'authenticated'
 
     await router.push('/protected-probe')
 

@@ -63,6 +63,8 @@ services:
   web:
     build:
       context: ./web
+    environment:
+      VITE_API_PROXY_TARGET: http://api:8080
     ports:
       - "${WEB_PORT:-5173}:5173"
     volumes:

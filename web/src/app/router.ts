@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import LoginView from '../features/auth/LoginView.vue'
+import RegisterView from '../features/auth/RegisterView.vue'
 import HomeView from '../views/HomeView.vue'
 import MonitorsView from '../views/MonitorsView.vue'
 import { useAuthStore } from './auth'
@@ -11,6 +13,18 @@ export const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: { guestOnly: true },
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
+      meta: { guestOnly: true },
     },
     {
       path: '/monitors',
@@ -25,9 +39,15 @@ export const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  if (auth.status === 'unknown') {
+    await auth.restore()
+  }
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return { name: 'home' }
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.guestOnly && auth.isAuthenticated) {
+    return { name: 'monitors' }
   }
 })
