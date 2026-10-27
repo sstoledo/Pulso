@@ -34,7 +34,7 @@ migrate:
 	PULSO_DATABASE_URL="$(PULSO_DATABASE_URL)" go run ./cmd/migrate
 
 test-integration: migrate
-	PULSO_TEST_DATABASE_URL="$(PULSO_TEST_DATABASE_URL)" go test -count=1 ./internal/auth
+	PULSO_TEST_DATABASE_URL="$(PULSO_TEST_DATABASE_URL)" go test -count=1 ./internal/auth ./internal/monitors
 
 build:
 	go build ./cmd/api ./cmd/worker ./cmd/migrate
