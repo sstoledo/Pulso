@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -15,6 +16,43 @@ import (
 type HTTPHandler struct {
 	service *Service
 	logger  *slog.Logger
+}
+
+type createRequest struct {
+	Name              string `json:"name"`
+	URL               string `json:"url"`
+	IntervalSeconds   *int   `json:"interval_seconds"`
+	TimeoutMS         *int   `json:"timeout_ms"`
+	ExpectedStatusMin *int   `json:"expected_status_min"`
+	ExpectedStatusMax *int   `json:"expected_status_max"`
+	ShowPublic        *bool  `json:"show_public"`
+}
+
+func (input createRequest) toCreateInput() (CreateInput, error) {
+	result := defaultCreateInput()
+	result.Name = input.Name
+	result.URL = input.URL
+	if input.IntervalSeconds != nil {
+		result.IntervalSeconds = *input.IntervalSeconds
+	}
+	if input.TimeoutMS != nil {
+		result.TimeoutMS = *input.TimeoutMS
+	}
+	if input.ExpectedStatusMin != nil {
+		result.ExpectedStatusMin = *input.ExpectedStatusMin
+	}
+	if input.ExpectedStatusMax != nil {
+		result.ExpectedStatusMax = *input.ExpectedStatusMax
+	}
+	if input.ShowPublic != nil {
+		result.ShowPublic = *input.ShowPublic
+	}
+	result.Name = strings.TrimSpace(result.Name)
+	result.URL = strings.TrimSpace(result.URL)
+	if err := validateConfiguration(result.Name, result.URL, result.IntervalSeconds, result.TimeoutMS, result.ExpectedStatusMin, result.ExpectedStatusMax); err != nil {
+		return CreateInput{}, err
+	}
+	return result, nil
 }
 
 func NewHTTPHandler(service *Service, authService *auth.Service, allowedOrigin string, logger *slog.Logger) *chi.Mux {
@@ -40,8 +78,13 @@ func NewHTTPHandler(service *Service, authService *auth.Service, allowedOrigin s
 }
 
 func (h *HTTPHandler) create(w http.ResponseWriter, r *http.Request) {
-	var input CreateInput
-	if !httpx.DecodeJSON(w, r, &input) {
+	var request createRequest
+	if !httpx.DecodeJSON(w, r, &request) {
+		return
+	}
+	input, err := request.toCreateInput()
+	if err != nil {
+		h.writeError(w, r, err)
 		return
 	}
 	monitor, err := h.service.Create(r.Context(), organizationID(r), input)

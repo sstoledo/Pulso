@@ -24,6 +24,10 @@ type CreateInput struct {
 	ShowPublic        bool   `json:"show_public"`
 }
 
+func defaultCreateInput() CreateInput {
+	return CreateInput{IntervalSeconds: 60, TimeoutMS: 5000, ExpectedStatusMin: 200, ExpectedStatusMax: 399}
+}
+
 func NormalizeCreate(input CreateInput) (CreateInput, error) {
 	input.Name = strings.TrimSpace(input.Name)
 	input.URL = strings.TrimSpace(input.URL)
@@ -51,7 +55,7 @@ func validateConfiguration(name, targetURL string, intervalSeconds, timeoutMS, s
 		fields["name"] = "Enter between 1 and 100 characters."
 	}
 	parsed, err := url.Parse(targetURL)
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.Fragment != "" {
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || strings.Contains(targetURL, "#") {
 		fields["url"] = "Enter an HTTP(S) URL without credentials or fragments."
 	}
 	if intervalSeconds != 30 && intervalSeconds != 60 && intervalSeconds != 300 {

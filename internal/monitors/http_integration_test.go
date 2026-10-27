@@ -93,6 +93,28 @@ func TestMonitorHTTPValidationAndPagination(t *testing.T) {
 	}
 }
 
+func TestMonitorHTTPCreateRejectsExplicitZeroValues(t *testing.T) {
+	router, pool, owner, ownerToken, _, _ := newMonitorAPI(t)
+	orgID := owner.Organizations[0].ID
+	for _, field := range []string{"interval_seconds", "timeout_ms", "expected_status_min", "expected_status_max"} {
+		t.Run(field, func(t *testing.T) {
+			var before, after int
+			if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM monitors WHERE organization_id = $1::uuid", orgID).Scan(&before); err != nil {
+				t.Fatal(err)
+			}
+			payload := map[string]any{"name": "Invalid", "url": "https://example.com"}
+			payload[field] = 0
+			monitorRequest[map[string]any](t, router, http.MethodPost, "/api/v1/orgs/"+orgID+"/monitors", ownerToken, payload, http.StatusUnprocessableEntity)
+			if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM monitors WHERE organization_id = $1::uuid", orgID).Scan(&after); err != nil {
+				t.Fatal(err)
+			}
+			if after != before {
+				t.Fatalf("monitor count changed from %d to %d", before, after)
+			}
+		})
+	}
+}
+
 func newMonitorAPI(t *testing.T) (*chi.Mux, *pgxpool.Pool, auth.Identity, string, auth.Identity, string) {
 	t.Helper()
 	databaseURL := os.Getenv("PULSO_TEST_DATABASE_URL")
