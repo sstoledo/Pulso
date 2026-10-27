@@ -2,7 +2,7 @@
 
 Pulso is a multi-organization platform for monitoring APIs, websites, and services. The MVP will provide availability and latency metrics, incident tracking, email alerts, a private dashboard, and public status pages.
 
-The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. Monitor management is implemented in later deliveries.
+The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. HTTP monitor management is available: authenticated users can create, list, edit, pause, resume and delete organization-scoped monitors through the API or dashboard. Automatic check execution is implemented in the next delivery.
 
 ## Architecture
 
@@ -97,6 +97,24 @@ curl -b /tmp/pulso.cookies \
 
 The complete request and response contracts are in `openapi/openapi.yaml`.
 
+## Monitor management
+
+Open **http://localhost:5173/monitors** after logging in. The dashboard polls monitor data and UP/DOWN/UNKNOWN totals every 15 seconds.
+
+Each monitor supports:
+
+- A 1–100 character name and an HTTP(S) URL without credentials or fragments.
+- Check intervals of 30, 60, or 300 seconds (default 60).
+- Timeouts from 100 to 10,000 ms (default 5,000).
+- An expected HTTP status range (default 200–399).
+- Enabled/paused scheduling and optional public status-page visibility.
+
+New monitors start in `UNKNOWN` state with no check timestamp or latency. Pause clears the next scheduled check; resume schedules it again. Delete is permanent and requires confirmation in the SPA. Monitor lists use `page` and `page_size` (maximum 50), while the summary endpoint always aggregates the whole organization.
+
+Monitor routes are nested under `/api/v1/orgs/{organizationID}` and enforce both backend membership and organization filtering. A non-member organization returns 403; a foreign monitor ID within a member organization returns 404.
+
+URL validation in this delivery is syntactic. DNS/IP/redirect SSRF enforcement is part of the worker execution delivery; the management API does not execute monitored URLs.
+
 ## Local development without containers for the applications
 
 Start PostgreSQL and Mailpit, then run each application in a separate terminal:
@@ -160,4 +178,4 @@ make compose-config   # Validate Compose configuration
 
 ## Demonstration status
 
-The current smoke path starts the stack, applies migrations, verifies API health and readiness, registers an owner, restores the session through `/me`, checks organization membership, and logs out. The complete monitor/incident/alert demonstration will be added with the corresponding MVP deliveries.
+The current smoke path starts the stack, applies migrations, verifies API health and readiness, registers an owner, restores the session through `/me`, and completes monitor create, summary, pause, resume, edit and delete operations through the Vite proxy. The complete automatic-check/incident/alert demonstration will be added with the corresponding MVP deliveries.

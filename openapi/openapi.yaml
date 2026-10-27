@@ -157,7 +157,203 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/OrganizationForbidden"
+  /api/v1/orgs/{organizationID}/monitors:
+    get:
+      operationId: listMonitors
+      summary: List organization monitors with pagination
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: organizationID
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        "200":
+          description: A page of monitors.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MonitorList" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+    post:
+      operationId: createMonitor
+      summary: Create an HTTP monitor
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: organizationID
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MonitorInput" }
+      responses:
+        "201":
+          description: The monitor was created in UNKNOWN state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Monitor" }
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+  /api/v1/orgs/{organizationID}/monitors/{monitorID}:
+    get:
+      operationId: getMonitor
+      summary: Get a monitor
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - $ref: "#/components/parameters/MonitorID"
+      responses:
+        "200":
+          description: The monitor.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Monitor" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "404":
+          $ref: "#/components/responses/MonitorNotFound"
+    patch:
+      operationId: updateMonitor
+      summary: Update monitor configuration
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - $ref: "#/components/parameters/MonitorID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MonitorUpdateInput" }
+      responses:
+        "200":
+          description: The updated monitor.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Monitor" }
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "404":
+          $ref: "#/components/responses/MonitorNotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+    delete:
+      operationId: deleteMonitor
+      summary: Delete a monitor
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - $ref: "#/components/parameters/MonitorID"
+      responses:
+        "204":
+          description: The monitor was deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "404":
+          $ref: "#/components/responses/MonitorNotFound"
+  /api/v1/orgs/{organizationID}/monitors/{monitorID}/pause:
+    post:
+      operationId: pauseMonitor
+      summary: Pause monitor scheduling
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - $ref: "#/components/parameters/MonitorID"
+      responses:
+        "200":
+          description: The paused monitor.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Monitor" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "404":
+          $ref: "#/components/responses/MonitorNotFound"
+  /api/v1/orgs/{organizationID}/monitors/{monitorID}/resume:
+    post:
+      operationId: resumeMonitor
+      summary: Resume monitor scheduling
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - $ref: "#/components/parameters/MonitorID"
+      responses:
+        "200":
+          description: The resumed monitor.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Monitor" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "404":
+          $ref: "#/components/responses/MonitorNotFound"
+  /api/v1/orgs/{organizationID}/dashboard/summary:
+    get:
+      operationId: getMonitorSummary
+      summary: Count monitors by current state
+      tags: [Monitors]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+      responses:
+        "200":
+          description: UP, DOWN and UNKNOWN totals for the whole organization.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MonitorSummary" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
 components:
+  parameters:
+    OrganizationID:
+      name: organizationID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    MonitorID:
+      name: monitorID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
   securitySchemes:
     cookieAuth:
       type: apiKey
@@ -178,6 +374,12 @@ components:
             $ref: "#/components/schemas/Error"
     ValidationFailed:
       description: One or more fields are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    MonitorNotFound:
+      description: The monitor does not exist in this organization.
       content:
         application/json:
           schema:
@@ -281,6 +483,68 @@ components:
               additionalProperties:
                 type: string
           additionalProperties: false
+      additionalProperties: false
+    MonitorInput:
+      type: object
+      required: [name, url]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        url: { type: string, format: uri }
+        interval_seconds: { type: integer, enum: [30, 60, 300], default: 60 }
+        timeout_ms: { type: integer, minimum: 100, maximum: 10000, default: 5000 }
+        expected_status_min: { type: integer, minimum: 100, maximum: 599, default: 200 }
+        expected_status_max: { type: integer, minimum: 100, maximum: 599, default: 399 }
+        show_public: { type: boolean, default: false }
+      additionalProperties: false
+    MonitorUpdateInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        url: { type: string, format: uri }
+        interval_seconds: { type: integer, enum: [30, 60, 300] }
+        timeout_ms: { type: integer, minimum: 100, maximum: 10000 }
+        expected_status_min: { type: integer, minimum: 100, maximum: 599 }
+        expected_status_max: { type: integer, minimum: 100, maximum: 599 }
+        show_public: { type: boolean }
+      additionalProperties: false
+    Monitor:
+      type: object
+      required: [id, name, url, interval_seconds, timeout_ms, expected_status_min, expected_status_max, enabled, show_public, status, last_check_at, last_latency_ms, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        url: { type: string, format: uri }
+        interval_seconds: { type: integer, enum: [30, 60, 300] }
+        timeout_ms: { type: integer }
+        expected_status_min: { type: integer }
+        expected_status_max: { type: integer }
+        enabled: { type: boolean }
+        show_public: { type: boolean }
+        status: { type: string, enum: [UNKNOWN, UP, DOWN] }
+        last_check_at: { type: [string, 'null'], format: date-time }
+        last_latency_ms: { type: [integer, 'null'] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      additionalProperties: false
+    MonitorList:
+      type: object
+      required: [items, total, page, page_size, total_pages]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Monitor" }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        page_size: { type: integer, minimum: 1, maximum: 50 }
+        total_pages: { type: integer, minimum: 0 }
+      additionalProperties: false
+    MonitorSummary:
+      type: object
+      required: [up, down, unknown]
+      properties:
+        up: { type: integer, minimum: 0 }
+        down: { type: integer, minimum: 0 }
+        unknown: { type: integer, minimum: 0 }
       additionalProperties: false
     HealthStatus:
       type: object

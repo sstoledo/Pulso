@@ -18,8 +18,8 @@ S5. "Las respuestas de error tendrán un formato consistente y no mostrarán inf
 
 - [x] T1 (S1, S2) — inline on `feat/monitor-persistence` — monitor schema, sqlc queries, domain validation and unit tests — commit: `2ab36f4`.
 - [x] T2 (S1-S3, S5) — inline on `feat/monitor-api` — shared organization middleware, CRUD/pause/resume/delete API and integration tests — commit: `7dc05b3`.
-- [x] T3 (S4) — inline on `feat/monitor-dashboard` — TanStack Query monitor management UI, forms, polling, pagination and tests — commit: recording after commit.
-- [ ] T4 (S5) — inline on `docs/http-monitors` — OpenAPI, README and verification documentation — commit: pending.
+- [x] T3 (S4) — inline on `feat/monitor-dashboard` — TanStack Query monitor management UI, forms, polling, pagination and tests — commit: `28f1d75`.
+- [x] T4 (S5) — inline on `docs/http-monitors` — OpenAPI, README and verification documentation — commit: recording after commit.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema) and 2 (tenant authorization) — full feature verification — evidence: pending.
 
 ## Log
@@ -35,3 +35,5 @@ L4. T1 evidence: validation tests were RED because `internal/monitors` had no im
 L5. T2 evidence: public CRUD/tenancy tests were RED before the handler existed. Migration 3 applied to real PostgreSQL. `make test-integration` passed auth and monitor suites, including defaults, UNKNOWN state, list/get/update, pause clearing next_check_at, resume scheduling, delete, validation, pagination, 403 for non-members and 404 for foreign monitor IDs within a member organization. Integration-enabled `make check` passed. A test initially mixed the 403/404 boundaries; it was corrected to exercise each through the appropriate organization without changing production behavior.
 
 L6. T3 evidence: dashboard tests were RED because the monitor API did not exist; the real view now passes empty/create, validation, edit/pause/delete, error, 15-second polling and pagination cases. Full `make check` passed with 7 frontend test files and 18 tests. Added a database-backed dashboard summary endpoint so totals are not derived from partial pages. A Compose/Vite smoke passed register, create UNKNOWN with defaults, summary UNKNOWN=1, pause, resume, edit and delete 204. Test identities were cleaned and Compose stopped without removing volumes.
+
+L7. T4 evidence: OpenAPI now documents monitor list/create/get/update/delete, pause/resume and dashboard summary contracts with pagination, defaults, state and error responses. Redocly reports the document valid with the same four known non-blocking recommended warnings (license, localhost server, and health 4xx suggestions). README documents dashboard use, validation, pagination, tenancy, pause/resume/delete and the explicit boundary that worker SSRF/execution belongs to Delivery 3. `make generate-check`, `make check`, `make compose-config`, and `git diff --check` passed.
