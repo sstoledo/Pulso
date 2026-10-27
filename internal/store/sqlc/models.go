@@ -15,6 +15,26 @@ type Membership struct {
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 }
 
+type Monitor struct {
+	ID                  pgtype.UUID        `json:"id"`
+	OrganizationID      pgtype.UUID        `json:"organization_id"`
+	Name                string             `json:"name"`
+	Url                 string             `json:"url"`
+	IntervalSeconds     int32              `json:"interval_seconds"`
+	TimeoutMs           int32              `json:"timeout_ms"`
+	ExpectedStatusMin   int32              `json:"expected_status_min"`
+	ExpectedStatusMax   int32              `json:"expected_status_max"`
+	Enabled             bool               `json:"enabled"`
+	ShowPublic          bool               `json:"show_public"`
+	Status              string             `json:"status"`
+	ConsecutiveFailures int32              `json:"consecutive_failures"`
+	LastCheckAt         pgtype.Timestamptz `json:"last_check_at"`
+	LastLatencyMs       pgtype.Int4        `json:"last_latency_ms"`
+	NextCheckAt         pgtype.Timestamptz `json:"next_check_at"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Organization struct {
 	ID        pgtype.UUID        `json:"id"`
 	Name      string             `json:"name"`
