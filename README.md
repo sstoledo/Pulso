@@ -2,7 +2,7 @@
 
 Pulso is a multi-organization platform for monitoring APIs, websites, and services. The MVP will provide availability and latency metrics, incident tracking, email alerts, a private dashboard, and public status pages.
 
-The current delivery establishes the executable foundation: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Business monitoring flows are implemented in later deliveries.
+The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. Monitor management is implemented in later deliveries.
 
 ## Architecture
 
@@ -64,6 +64,39 @@ The current delivery establishes the executable foundation: Go API and worker pr
 
 `healthz` checks only API liveness. `readyz` pings PostgreSQL and returns HTTP 503 when the database is unavailable.
 
+## Authentication and tenancy
+
+- Registration requires a 1–80 character name, a valid email, and a 12–128 character password.
+- Passwords are hashed with Argon2id. Email addresses are normalized to lowercase.
+- Registration atomically creates the user, an organization, and its `owner` membership.
+- Sessions expire after seven days. Their opaque tokens are stored only as SHA-256 hashes in PostgreSQL.
+- The `pulso_session` cookie is HttpOnly, SameSite=Lax, scoped to `/`, and revoked by logout.
+- Organization endpoints always verify backend membership; frontend visibility is not an authorization boundary.
+- API errors use an `error` envelope with a stable `code`, safe `message`, and optional validation `details`.
+
+The SPA restores `/api/v1/auth/me` before protected navigation. Unauthenticated users are redirected to login with a local return path. Logout and any API 401 clear the Pinia authentication state. No session token is stored in `localStorage`.
+
+For a deployed environment, set `PULSO_COOKIE_SECURE=true` and configure `PULSO_WEB_ORIGIN` to the exact allowed browser origin. Local development defaults to `http://localhost:5173` and a non-Secure cookie so HTTP localhost works.
+
+Try the API through the Vite proxy after starting the stack:
+
+```sh
+email="ada-$(date +%s)@example.com"
+curl -c /tmp/pulso.cookies \
+  -H 'Content-Type: application/json' \
+  -H 'Origin: http://localhost:5173' \
+  -d "{\"name\":\"Ada Lovelace\",\"email\":\"$email\",\"password\":\"password-12345\"}" \
+  http://localhost:5173/api/v1/auth/register
+
+curl -b /tmp/pulso.cookies http://localhost:5173/api/v1/auth/me
+
+curl -b /tmp/pulso.cookies \
+  -H 'Origin: http://localhost:5173' \
+  -X POST http://localhost:5173/api/v1/auth/logout
+```
+
+The complete request and response contracts are in `openapi/openapi.yaml`.
+
 ## Local development without containers for the applications
 
 Start PostgreSQL and Mailpit, then run each application in a separate terminal:
@@ -110,7 +143,9 @@ Useful focused commands:
 ```sh
 make fmt              # Normalize Go and frontend source formatting
 make lint             # Go vet and ESLint
-make test             # Go and Vue tests
+make test             # Go and Vue tests; integration runs when its env is set
+make migrate          # Apply migrations to the configured PostgreSQL database
+make test-integration # Migrate and run real PostgreSQL auth/tenancy tests
 make build            # Go binaries and frontend production build
 make compose-config   # Validate Compose configuration
 ```
@@ -125,4 +160,4 @@ make compose-config   # Validate Compose configuration
 
 ## Demonstration status
 
-The current smoke path starts the stack, applies migrations, verifies API health and readiness, loads the SPA, and opens Mailpit. The complete monitor/incident/alert demonstration will be added with the corresponding MVP deliveries.
+The current smoke path starts the stack, applies migrations, verifies API health and readiness, registers an owner, restores the session through `/me`, checks organization membership, and logs out. The complete monitor/incident/alert demonstration will be added with the corresponding MVP deliveries.
