@@ -11,6 +11,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countMonitorStatusByOrg = `-- name: CountMonitorStatusByOrg :many
+SELECT status, count(*) AS count
+FROM monitors
+WHERE organization_id = $1
+GROUP BY status
+`
+
+type CountMonitorStatusByOrgRow struct {
+	Status string `json:"status"`
+	Count  int64  `json:"count"`
+}
+
+func (q *Queries) CountMonitorStatusByOrg(ctx context.Context, organizationID pgtype.UUID) ([]CountMonitorStatusByOrgRow, error) {
+	rows, err := q.db.Query(ctx, countMonitorStatusByOrg, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountMonitorStatusByOrgRow
+	for rows.Next() {
+		var i CountMonitorStatusByOrgRow
+		if err := rows.Scan(&i.Status, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const countMonitorsByOrg = `-- name: CountMonitorsByOrg :one
 SELECT count(*)
 FROM monitors
