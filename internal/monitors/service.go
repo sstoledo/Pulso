@@ -52,6 +52,12 @@ type ListResult struct {
 	TotalPages int       `json:"total_pages"`
 }
 
+type Summary struct {
+	Up      int `json:"up"`
+	Down    int `json:"down"`
+	Unknown int `json:"unknown"`
+}
+
 type Service struct {
 	queries *sqlc.Queries
 }
@@ -115,6 +121,29 @@ func (s *Service) List(ctx context.Context, organizationID string, page, pageSiz
 		Items: items, Total: int(total), Page: page, PageSize: pageSize,
 		TotalPages: (int(total) + pageSize - 1) / pageSize,
 	}, nil
+}
+
+func (s *Service) Summary(ctx context.Context, organizationID string) (Summary, error) {
+	organizationUUID, err := uuid.Parse(organizationID)
+	if err != nil {
+		return Summary{}, fmt.Errorf("parse organization ID: %w", err)
+	}
+	rows, err := s.queries.CountMonitorStatusByOrg(ctx, pgtype.UUID{Bytes: organizationUUID, Valid: true})
+	if err != nil {
+		return Summary{}, fmt.Errorf("summarize monitors: %w", err)
+	}
+	var summary Summary
+	for _, row := range rows {
+		switch row.Status {
+		case "UP":
+			summary.Up = int(row.Count)
+		case "DOWN":
+			summary.Down = int(row.Count)
+		case "UNKNOWN":
+			summary.Unknown = int(row.Count)
+		}
+	}
+	return summary, nil
 }
 
 func (s *Service) Get(ctx context.Context, organizationID, monitorID string) (Monitor, error) {

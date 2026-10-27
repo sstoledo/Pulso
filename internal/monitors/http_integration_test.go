@@ -32,6 +32,11 @@ func TestMonitorHTTPCrudAndTenancy(t *testing.T) {
 		t.Fatalf("created monitor = %#v", created)
 	}
 
+	summary := monitorRequest[monitors.Summary](t, router, http.MethodGet, "/api/v1/orgs/"+orgID+"/dashboard/summary", ownerToken, nil, http.StatusOK)
+	if summary.Unknown != 1 || summary.Up != 0 || summary.Down != 0 {
+		t.Fatalf("summary = %#v", summary)
+	}
+
 	list := monitorRequest[monitors.ListResult](t, router, http.MethodGet, "/api/v1/orgs/"+orgID+"/monitors", ownerToken, nil, http.StatusOK)
 	if list.Total != 1 || len(list.Items) != 1 || list.TotalPages != 1 {
 		t.Fatalf("list = %#v", list)

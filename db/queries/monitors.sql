@@ -17,6 +17,12 @@ SELECT count(*)
 FROM monitors
 WHERE organization_id = $1;
 
+-- name: CountMonitorStatusByOrg :many
+SELECT status, count(*) AS count
+FROM monitors
+WHERE organization_id = $1
+GROUP BY status;
+
 -- name: ListMonitorsByOrg :many
 SELECT *
 FROM monitors

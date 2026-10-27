@@ -29,6 +29,7 @@ func NewHTTPHandler(service *Service, authService *auth.Service, allowedOrigin s
 	readChain := []func(http.Handler) http.Handler{auth.RequireAuthentication(authService, logger), auth.RequireOrganization(authService, logger)}
 	writeChain := []func(http.Handler) http.Handler{auth.RequireSameOrigin(allowedOrigin), auth.RequireAuthentication(authService, logger), auth.RequireOrganization(authService, logger)}
 	router.With(readChain...).Get("/monitors", handler.list)
+	router.With(readChain...).Get("/dashboard/summary", handler.summary)
 	router.With(readChain...).Get("/monitors/{monitorID}", handler.get)
 	router.With(writeChain...).Post("/monitors", handler.create)
 	router.With(writeChain...).Patch("/monitors/{monitorID}", handler.update)
@@ -60,6 +61,15 @@ func (h *HTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *HTTPHandler) summary(w http.ResponseWriter, r *http.Request) {
+	summary, err := h.service.Summary(r.Context(), organizationID(r))
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, summary)
 }
 
 func (h *HTTPHandler) get(w http.ResponseWriter, r *http.Request) {
