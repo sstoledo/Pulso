@@ -16,11 +16,11 @@ S5. "Las respuestas de error tendrán un formato consistente y no mostrarán inf
 
 ## Tasks
 
-- [x] T1 (S1, S2) — inline on `feat/monitor-persistence` — monitor schema, sqlc queries, domain validation and unit tests — commits: `2ab36f4`, correction recording after commit.
-- [x] T2 (S1-S3, S5) — inline on `feat/monitor-api` — shared organization middleware, CRUD/pause/resume/delete API and integration tests — commits: `7dc05b3`, correction recording after commit.
-- [x] T3 (S4) — inline on `feat/monitor-dashboard` — TanStack Query monitor management UI, forms, polling, pagination and tests — commits: `28f1d75`, correction recording after commit.
+- [x] T1 (S1, S2) — inline on `feat/monitor-persistence` — monitor schema, sqlc queries, domain validation and unit tests — commits: `2ab36f4`, `26dbe76`.
+- [x] T2 (S1-S3, S5) — inline on `feat/monitor-api` — shared organization middleware, CRUD/pause/resume/delete API and integration tests — commits: `7dc05b3`, `26dbe76`.
+- [x] T3 (S4) — inline on `feat/monitor-dashboard` — TanStack Query monitor management UI, forms, polling, pagination and tests — commits: `28f1d75`, `26dbe76`.
 - [x] T4 (S5) — inline on `docs/http-monitors` — OpenAPI, README and verification documentation — commit: `64c994e`.
-- [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema) and 2 (tenant authorization) — full feature verification — evidence: pending.
+- [x] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema) and 2 (tenant authorization) — full feature verification — evidence: independent PASS after one bounded validation correction.
 
 ## Log
 
@@ -41,3 +41,5 @@ L7. T4 evidence: OpenAPI now documents monitor list/create/get/update/delete, pa
 L8. Independent item-1/item-2 verification at `64c994e` returned FAIL for S1 and S4: explicit zero values incorrectly became defaults and an empty `#` fragment was accepted by backend and frontend. S2, S3 and S5 passed. Reopen only validation-linked T1/T2/T3 for one bounded correction. HTTP input must distinguish omitted numeric fields (defaults) from explicit zero (422), and every rejection must preserve monitor count. Scratch `/tmp/opencode/pulso-http-monitors.x4Gl91`, Compose project `pulsoverify64c994e`, and its images await parent cleanup.
 
 L9. Correction evidence: empty-fragment tests were RED in Go and Vue; the new explicit-zero API cases also covered monitor-count invariants. A pointer-based HTTP create DTO now applies defaults only to omitted fields while explicit zero reaches validation and returns 422. Raw `#` detection closes both backend and frontend empty-fragment bypasses. Focused and real PostgreSQL integration tests passed; integration-enabled `make check` passed with 19 frontend tests. Initial verifier scratch resources were cleaned.
+
+L10. Final verification: the independent bounded recheck at `26dbe76` returned PASS for S1 and S4. All four explicit-zero fields and the empty fragment returned 422 with monitor count unchanged; omitted optional fields retained every default and returned 201 UNKNOWN. Parent spot check reran the Go fragment regression successfully. Prior independent MET verdicts stand for S2, S3 and S5. Scratch directories, isolated Compose resources and recheck images were cleaned. Delivery 2 is complete; push, PR creation, merge and branch deletion remain user decisions under the concise-PR-body and short-lived-branch policies.
