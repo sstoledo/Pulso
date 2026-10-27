@@ -2,9 +2,7 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -43,13 +41,13 @@ func NewHTTPHandler(service *Service, cookieSecure bool, allowedOrigin string, l
 	router.With(handler.requireSameOrigin).Post("/auth/login", handler.login)
 	router.With(handler.requireSameOrigin, handler.requireAuthentication).Post("/auth/logout", handler.logout)
 	router.With(handler.requireAuthentication).Get("/auth/me", handler.me)
-	router.With(handler.requireAuthentication).Get("/orgs/{organizationID}", handler.organization)
+	router.With(RequireAuthentication(service, logger), RequireOrganization(service, logger)).Get("/orgs/{organizationID}", handler.organization)
 	return router
 }
 
 func (h *HTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 	var input RegisterInput
-	if !decodeJSON(w, r, &input) {
+	if !httpx.DecodeJSON(w, r, &input) {
 		return
 	}
 	identity, rawToken, err := h.service.Register(r.Context(), input)
@@ -66,7 +64,7 @@ func (h *HTTPHandler) login(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	if !decodeJSON(w, r, &input) {
+	if !httpx.DecodeJSON(w, r, &input) {
 		return
 	}
 	identity, rawToken, err := h.service.Login(r.Context(), input.Email, input.Password)
@@ -93,13 +91,7 @@ func (h *HTTPHandler) me(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) organization(w http.ResponseWriter, r *http.Request) {
-	identity := sessionFromContext(r.Context()).identity
-	organization, err := h.service.Organization(r.Context(), identity.User.ID, chi.URLParam(r, "organizationID"))
-	if err != nil {
-		h.writeError(w, r, err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, organization)
+	httpx.WriteJSON(w, http.StatusOK, OrganizationFromContext(r.Context()))
 }
 
 func (h *HTTPHandler) requireAuthentication(next http.Handler) http.Handler {
@@ -166,19 +158,4 @@ func (h *HTTPHandler) clearSessionCookie(w http.ResponseWriter) {
 
 func sessionFromContext(ctx context.Context) sessionContext {
 	return ctx.Value(sessionContextKey{}).(sessionContext)
-}
-
-func decodeJSON(w http.ResponseWriter, r *http.Request, destination any) bool {
-	r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(destination); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
-		return false
-	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_json", "Request body must contain one JSON object.")
-		return false
-	}
-	return true
 }

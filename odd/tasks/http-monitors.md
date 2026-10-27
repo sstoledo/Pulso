@@ -16,8 +16,8 @@ S5. "Las respuestas de error tendrán un formato consistente y no mostrarán inf
 
 ## Tasks
 
-- [x] T1 (S1, S2) — inline on `feat/monitor-persistence` — monitor schema, sqlc queries, domain validation and unit tests — commit: recording after commit.
-- [ ] T2 (S1-S3, S5) — inline on `feat/monitor-api` — shared organization middleware, CRUD/pause/resume/delete API and integration tests — commit: pending.
+- [x] T1 (S1, S2) — inline on `feat/monitor-persistence` — monitor schema, sqlc queries, domain validation and unit tests — commit: `2ab36f4`.
+- [x] T2 (S1-S3, S5) — inline on `feat/monitor-api` — shared organization middleware, CRUD/pause/resume/delete API and integration tests — commit: recording after commit.
 - [ ] T3 (S4) — inline on `feat/monitor-dashboard` — TanStack Query monitor management UI, forms, polling, pagination and tests — commit: pending.
 - [ ] T4 (S5) — inline on `docs/http-monitors` — OpenAPI, README and verification documentation — commit: pending.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema) and 2 (tenant authorization) — full feature verification — evidence: pending.
@@ -31,3 +31,5 @@ L2. Permanent PR presentation rule: future PR bodies contain only a short Summar
 L3. URL validation in this delivery is syntactic and rejects credentials. SSRF DNS/IP/redirect enforcement belongs to the check executor in Delivery 3; no monitor execution behavior is claimed here. Delete is a confirmed hard delete for the MVP, with dependent data protected by foreign-key cascades. Monitor lists use page/page_size pagination (default 1/10, maximum 50). RDD remains globally disabled; independent verification remains required for the named high-risk items.
 
 L4. T1 evidence: validation tests were RED because `internal/monitors` had no implementation; a fragment-specific failure revealed that `url.ParseRequestURI` did not preserve the rejected fragment, so parsing uses `url.Parse` and the full suite is GREEN. Migration `00003` adds monitor configuration, UNKNOWN/UP/DOWN checks, scheduling fields, foreign keys and organization/scheduling indexes. sqlc generation, Go tests/vet and `git diff --check` passed.
+
+L5. T2 evidence: public CRUD/tenancy tests were RED before the handler existed. Migration 3 applied to real PostgreSQL. `make test-integration` passed auth and monitor suites, including defaults, UNKNOWN state, list/get/update, pause clearing next_check_at, resume scheduling, delete, validation, pagination, 403 for non-members and 404 for foreign monitor IDs within a member organization. Integration-enabled `make check` passed. A test initially mixed the 403/404 boundaries; it was corrected to exercise each through the appropriate organization without changing production behavior.
