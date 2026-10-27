@@ -1,0 +1,17 @@
+import eslintConfigPrettier from 'eslint-config-prettier'
+import pluginVue from 'eslint-plugin-vue'
+import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+
+export default defineConfigWithVueTs(
+  {
+    ignores: ['dist', 'coverage', 'test-results', 'playwright-report'],
+  },
+  pluginVue.configs['flat/recommended'],
+  vueTsConfigs.recommended,
+  {
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+  eslintConfigPrettier,
+)
