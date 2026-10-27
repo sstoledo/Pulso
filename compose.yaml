@@ -26,6 +26,8 @@ services:
       PULSO_ENV: ${PULSO_ENV:-development}
       PULSO_DATABASE_URL: postgres://${POSTGRES_USER:-pulso}:${POSTGRES_PASSWORD:-pulso}@postgres:5432/${POSTGRES_DB:-pulso}?sslmode=disable
       PULSO_SHUTDOWN_TIMEOUT: ${PULSO_SHUTDOWN_TIMEOUT:-10s}
+      PULSO_WEB_ORIGIN: ${PULSO_WEB_ORIGIN:-http://localhost:5173}
+      PULSO_COOKIE_SECURE: ${PULSO_COOKIE_SECURE:-false}
     depends_on:
       postgres:
         condition: service_healthy

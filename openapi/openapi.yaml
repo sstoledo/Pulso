@@ -34,8 +34,245 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UnavailableStatus"
+  /api/v1/auth/register:
+    post:
+      operationId: register
+      summary: Register a user and create an owner organization
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registration succeeded and a session cookie was issued.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identity"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "403":
+          $ref: "#/components/responses/OriginForbidden"
+        "409":
+          description: The email is already registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      summary: Log in and create a session
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login succeeded and a session cookie was issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identity"
+        "400":
+          $ref: "#/components/responses/InvalidJSON"
+        "401":
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          $ref: "#/components/responses/OriginForbidden"
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the current session
+      tags: [Authentication]
+      security: [{ cookieAuth: [] }]
+      responses:
+        "204":
+          description: The session was revoked and the cookie was cleared.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OriginForbidden"
+  /api/v1/auth/me:
+    get:
+      operationId: getCurrentIdentity
+      summary: Get the authenticated user and organizations
+      tags: [Authentication]
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: The authenticated identity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identity"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/orgs/{organizationID}:
+    get:
+      operationId: getOrganization
+      summary: Get an organization through an authenticated membership
+      tags: [Organizations]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: organizationID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The organization and the current user's role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: pulso_session
+  responses:
+    InvalidJSON:
+      description: The JSON body is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    OriginForbidden:
+      description: The request origin is not allowed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ValidationFailed:
+      description: One or more fields are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication is required or the session is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    OrganizationForbidden:
+      description: The user does not belong to the organization.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
+    RegisterInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+          format: password
+      additionalProperties: false
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      additionalProperties: false
+    Identity:
+      type: object
+      required: [user, organizations]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Organization"
+      additionalProperties: false
+    User:
+      type: object
+      required: [id, name, email, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+    Organization:
+      type: object
+      required: [id, name, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, viewer]
+      additionalProperties: false
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties:
+                type: string
+          additionalProperties: false
+      additionalProperties: false
     HealthStatus:
       type: object
       required: [status]
