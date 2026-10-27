@@ -100,6 +100,19 @@ describe('MonitorsView', () => {
     expect(monitorsApi.create).not.toHaveBeenCalled()
   })
 
+  it('rejects an empty URL fragment', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.get('#create-monitor').trigger('click')
+    await wrapper.get('#monitor-name').setValue('Bad')
+    await wrapper.get('#monitor-url').setValue('https://example.com/#')
+
+    await wrapper.get('form').trigger('submit')
+
+    expect(wrapper.text()).toContain('Enter an HTTP(S) URL without credentials or fragments.')
+    expect(monitorsApi.create).not.toHaveBeenCalled()
+  })
+
   it('edits, pauses and deletes a monitor', async () => {
     vi.mocked(monitorsApi.list).mockResolvedValue(listWith([monitorFixture]))
     vi.mocked(monitorsApi.summary).mockResolvedValue({ up: 0, down: 0, unknown: 1 })

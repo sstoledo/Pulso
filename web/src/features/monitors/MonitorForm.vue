@@ -52,7 +52,7 @@ function submit() {
       !target.host ||
       target.username ||
       target.password ||
-      target.hash
+      form.url.includes('#')
     ) {
       errors.url = 'Enter an HTTP(S) URL without credentials or fragments.'
     }
