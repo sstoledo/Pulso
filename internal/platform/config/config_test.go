@@ -44,6 +44,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.WorkerConcurrency != 10 || cfg.WorkerBatchSize != 20 || cfg.WorkerPollInterval != time.Second || len(cfg.CheckAllowPrivateHosts) != 0 {
 		t.Fatalf("worker defaults = %#v", cfg)
 	}
+	if cfg.SMTPHost != "mailpit" || cfg.SMTPPort != 1025 || cfg.SMTPFrom != "pulso@localhost" {
+		t.Fatalf("SMTP defaults = %#v", cfg)
+	}
 }
 
 func TestLoadRejectsPrivateHostExceptionsInProduction(t *testing.T) {

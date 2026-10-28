@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"pulso/internal/checks"
+	"pulso/internal/notifications"
 	"pulso/internal/platform/config"
 )
 
@@ -45,9 +46,21 @@ func run(logger *slog.Logger) error {
 	worker.Concurrency = cfg.WorkerConcurrency
 	worker.BatchSize = int32(cfg.WorkerBatchSize)
 	worker.PollInterval = cfg.WorkerPollInterval
+	notificationWorker := notifications.NewWorker(pool, notifications.NewSMTPMailer(notifications.SMTPConfig{
+		Host: cfg.SMTPHost, Port: cfg.SMTPPort, From: cfg.SMTPFrom,
+	}), logger)
+	notificationWorker.PollInterval = cfg.WorkerPollInterval
+	workerCtx, cancelWorkers := context.WithCancel(ctx)
+	defer cancelWorkers()
+	workerErrors := make(chan error, 2)
+	go func() { workerErrors <- worker.Run(workerCtx) }()
+	go func() { workerErrors <- notificationWorker.Run(workerCtx) }()
 	logger.Info("worker started", "environment", cfg.Environment, "concurrency", worker.Concurrency, "batch_size", worker.BatchSize)
-	if err := worker.Run(ctx); err != nil {
-		return fmt.Errorf("run worker: %w", err)
+	for completed := 0; completed < 2; completed++ {
+		if err := <-workerErrors; err != nil {
+			cancelWorkers()
+			return fmt.Errorf("run worker: %w", err)
+		}
 	}
 	logger.Info("worker stopped gracefully")
 	return nil
