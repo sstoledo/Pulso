@@ -23,9 +23,9 @@ S5. "Pruebas del worker con servidores HTTP de prueba.", "Pruebas de integració
 - [x] T2c (S3) — inline on `feat/ssrf-redirects` — manually revalidated redirects and regression coverage — commit: `f8b94f4`.
 - [x] T3a (S1-S5) — inline on `feat/check-scheduler` — scheduler, claiming, stale recovery and pause behavior — commit: recording after commit.
 - [x] T3b (S1-S5) — inline on `feat/check-result-worker` — transactional results, idempotency and state transitions — commit: `faf536e`.
-- [x] T3c (S1-S5) — inline on `feat/check-worker-v2` — bounded worker pool, runtime configuration and concurrency coverage — commits: `2403266`, correction recording after commit.
+- [x] T3c (S1-S5) — inline on `feat/check-worker-v2` — bounded worker pool, runtime configuration and concurrency coverage — commits: `2403266`, `0e5b7ad`.
 - [x] T4 (S5) — inline on `docs/check-execution-v2` — controllable demo target, README/operations and verification documentation — commit: recording after commit.
-- [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1, 2, 4 and 5 — restructured full-feature verification — evidence: pending.
+- [x] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1, 2, 4 and 5 — restructured full-feature verification — evidence: independent PASS after restoring the production config guard.
 
 ## Log
 
@@ -56,3 +56,5 @@ L12. Restructure evidence: SSRF redirects and worker processing were split furth
 L13. Independent restructured verification returned FAIL for S3 only: copying the pre-fix worker configuration omitted the production private-host rejection. S1, S2, S4 and S5 passed. Restore that exact guard and regression test on `fix/production-ssrf-config`; no other behavior changes. Scratch `/tmp/opencode/pulso-verify-Q7fKbm`, Compose project `pulsoverify-q7fkbm`, and images await parent cleanup.
 
 L14. Correction evidence: the exact production regression was RED, then passed after restoring the explicit guard and its error text. Full `make check` and `git diff --check` passed. Initial verifier scratch resources were cleaned.
+
+L15. Final verification: the independent bounded recheck at `0e5b7ad` returned PASS for S3. The production worker now exits 1 before startup with `PULSO_CHECK_ALLOW_PRIVATE_HOSTS is not allowed in production`; parent spot check passed. Prior independent MET verdicts stand for S1, S2, S4 and S5. Scratch resources were cleaned. All PRs in the restructured stack are under 400 authored lines and no size exception is required. Delivery 3 is ready for Summary-only stacked PR submission.
