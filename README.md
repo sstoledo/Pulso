@@ -167,6 +167,35 @@ GET /api/v1/orgs/{organizationID}/monitors/{monitorID}/checks?page=1&page_size=1
 
 The latency chart uses the same ordered series as the metrics endpoint and does not convert no-response failures to zero latency.
 
+## Public status pages
+
+Every organization owns one status page created at registration with a unique lowercase slug and an unpublished state. Owners read and update it through authenticated endpoints:
+
+```text
+GET   /api/v1/orgs/{organizationID}/status-page
+PATCH /api/v1/orgs/{organizationID}/status-page
+```
+
+The PATCH body requires `slug`, `title` and `is_published`. Slugs are 3–64 lowercase letters, numbers or hyphens and cannot start or end with a hyphen; a slug used by another organization returns `409`.
+
+Published pages are public and need no session:
+
+```text
+GET /api/v1/public/status/{slug}
+```
+
+The public view shows the page title, only monitors with `show_public` enabled, their current status and nullable 24-hour availability, and at most five recent incidents with monitor name, opened/resolved timestamps, duration and status. Incident reasons, monitor URLs, identifiers, emails and monitor configuration are never exposed. Unpublished and unknown slugs return the same `404`, so the response does not reveal whether a page exists.
+
+The SPA renders the same data anonymously at `/status/{slug}` with loading, empty, not-found and error states.
+
+### Public status page demo
+
+1. Register, then read the generated slug from `GET /api/v1/orgs/{organizationID}/status-page`.
+2. Create a monitor for `http://demo-target:8080/health` and enable `show_public`.
+3. Publish the page with `PATCH` using that slug, a title and `is_published` set to `true`.
+4. Open `/status/{slug}` in a private window without logging in. The monitor appears with its availability; any hidden monitor stays invisible.
+5. Request the public endpoint with `curl` and confirm the body contains no monitor URL, identifier or incident reason.
+
 ## Incidents and email alerts
 
 The second consecutive failed check opens one incident and inserts one OPENED outbox job. Further failures preserve that incident. The next successful check resolves it with a duration and inserts one RECOVERED job. Result, monitor state, incident transition and outbox creation commit atomically.
@@ -254,4 +283,4 @@ make compose-config   # Validate Compose configuration
 
 ## Demonstration status
 
-The current smoke path starts the stack, applies migrations, registers an owner, creates a monitor, forces two failures to open an incident and send its alert, then restores the target to close the incident and send recovery. Monitor detail exposes 24-hour metrics, a latency chart, check history and incident history. Public status pages remain for the next delivery.
+The current smoke path starts the stack, applies migrations, registers an owner, creates a monitor, forces two failures to open an incident and send its alert, then restores the target to close the incident and send recovery. Monitor detail exposes 24-hour metrics, a latency chart, check history and incident history. Published status pages serve anonymous visitors at `/status/{slug}` with public monitors and recent incidents only.
