@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"pulso/internal/checks"
 	"pulso/internal/platform/config"
 )
 
@@ -40,8 +41,14 @@ func run(logger *slog.Logger) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	logger.Info("worker started", "environment", cfg.Environment)
-	<-ctx.Done()
+	worker := checks.NewWorker(pool, checks.NewExecutor(cfg.CheckAllowPrivateHosts), logger)
+	worker.Concurrency = cfg.WorkerConcurrency
+	worker.BatchSize = int32(cfg.WorkerBatchSize)
+	worker.PollInterval = cfg.WorkerPollInterval
+	logger.Info("worker started", "environment", cfg.Environment, "concurrency", worker.Concurrency, "batch_size", worker.BatchSize)
+	if err := worker.Run(ctx); err != nil {
+		return fmt.Errorf("run worker: %w", err)
+	}
 	logger.Info("worker stopped gracefully")
 	return nil
 }

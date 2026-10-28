@@ -41,6 +41,19 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.CookieSecure {
 		t.Fatal("CookieSecure must default to false in development")
 	}
+	if cfg.WorkerConcurrency != 10 || cfg.WorkerBatchSize != 20 || cfg.WorkerPollInterval != time.Second || len(cfg.CheckAllowPrivateHosts) != 0 {
+		t.Fatalf("worker defaults = %#v", cfg)
+	}
+}
+
+func TestLoadRejectsInvalidWorkerConcurrency(t *testing.T) {
+	t.Setenv("PULSO_DATABASE_URL", "postgres://localhost/pulso")
+	t.Setenv("PULSO_WORKER_CONCURRENCY", "0")
+
+	_, err := config.Load()
+	if err == nil {
+		t.Fatal("expected invalid worker concurrency error")
+	}
 }
 
 func TestLoadRejectsInvalidCookieSecure(t *testing.T) {
