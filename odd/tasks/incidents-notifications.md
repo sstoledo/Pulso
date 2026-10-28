@@ -19,7 +19,8 @@ S5. The main demonstration is "registrar un usuario, crear un monitor, simular u
 - [x] T1a (S1, S2) — inline on `feat/incident-persistence` — incident schema, transition queries and unit rules — commit: `6947773`.
 - [x] T1b (S3) — inline on `feat/notification-persistence` — outbox, idempotency, claim/retry and attempt-history schema — commit: recording after commit.
 - [x] T2 (S1, S2) — inline on `feat/incident-transitions` — worker transactional incident/open-close integration and concurrency tests — commit: recording after commit.
-- [ ] T3 (S3) — inline on `feat/notification-worker` — SMTP outbox dispatcher, idempotency, attempt logging, backoff and fake-mailer tests — commit: pending.
+- [x] T3a (S3) — inline on `feat/notification-worker` — outbox dispatcher, idempotency, attempt logging, backoff and fake-mailer tests — commit: recording after commit.
+- [ ] T3b (S3) — inline on `feat/smtp-mailer` — SMTP client, worker runtime configuration and Mailpit integration — commit: pending.
 - [ ] T4 (S4) — inline on `feat/incident-api` — paginated incident queries and organization/member API tests — commit: pending.
 - [ ] T5 (S5) — inline on `docs/incident-alerts` — OpenAPI, README and full Mailpit demo — commit: pending.
 - [ ] T6 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema/transactions), 2 (tenant/credentials), and 4 (concurrency/idempotency) — full feature verification — evidence: pending.
@@ -35,3 +36,5 @@ L3. Notification delivery is at-least-once across process crashes because SMTP h
 L4. T1 evidence: transition tests were RED before implementation and now cover no-open on first failure, open on second, no duplicate open, close on recovery and no close without an incident. Migrations `00006` and `00007` were split into incident and notification persistence PRs under 400 lines each. The partial unique open-incident index, idempotency-key uniqueness, outbox claiming/retry fields and attempt history are generated and tested.
 
 L5. T2 evidence: worker integration now asserts zero incidents after the first failure, one open incident and one OPENED job after the second, and one resolved incident with duration plus a second RECOVERED job after recovery. Fresh migrations 6 and 7 applied; all executor, scheduler and worker tests passed.
+
+L6. T3a evidence: fake-mailer integration passes one successful send with no duplicate dispatch, two failures followed by success on the third attempt, and terminal failure after exactly five attempts. Attempt history, status, retry counts and idempotent dispatch are asserted against real PostgreSQL.
