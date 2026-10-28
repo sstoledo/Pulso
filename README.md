@@ -2,7 +2,7 @@
 
 Pulso is a multi-organization platform for monitoring APIs, websites, and services. The MVP will provide availability and latency metrics, incident tracking, email alerts, a private dashboard, and public status pages.
 
-The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. HTTP monitor management is available: authenticated users can create, list, edit, pause, resume and delete organization-scoped monitors through the API or dashboard. The worker now schedules and executes HTTP checks concurrently, records results and latency, and moves monitors between UNKNOWN, UP and DOWN. Incidents and notifications are implemented in the next delivery.
+The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. HTTP monitor management is available: authenticated users can create, list, edit, pause, resume and delete organization-scoped monitors through the API or dashboard. The worker now schedules and executes HTTP checks concurrently, records results and latency, and moves monitors between UNKNOWN, UP and DOWN. The worker now opens incidents after two consecutive failures, closes them after recovery, and sends idempotent email alerts with retries and attempt history. Public status pages and detailed metrics are implemented in the next deliveries.
 
 ## Architecture
 
@@ -147,6 +147,30 @@ curl -H 'Content-Type: application/json' \
 
 After two failed checks, the dashboard shows DOWN. After the next healthy check, it shows UP again, with the latest latency and check timestamp. Incidents and email alerts are intentionally introduced in the next delivery.
 
+## Incidents and email alerts
+
+The second consecutive failed check opens one incident and inserts one OPENED outbox job. Further failures preserve that incident. The next successful check resolves it with a duration and inserts one RECOVERED job. Result, monitor state, incident transition and outbox creation commit atomically.
+
+Notifications are claimed with `FOR UPDATE SKIP LOCKED` and sent outside database transactions. Each job has a unique idempotency key, persisted attempt history, capped exponential backoff and at most five attempts. Delivery is at-least-once across process crashes; SMTP and PostgreSQL do not share a distributed transaction, so a crash immediately after a successful send cannot be prevented from producing a retry.
+
+Configure delivery with `PULSO_SMTP_HOST`, `PULSO_SMTP_PORT`, and `PULSO_SMTP_FROM`. Local Compose uses Mailpit on http://localhost:8025.
+
+List private incident history with:
+
+```text
+GET /api/v1/orgs/{organizationID}/incidents?page=1&page_size=10&monitor_id={optionalMonitorID}
+```
+
+Responses include incident ID, monitor ID, opened/resolved timestamps, duration, safe reason and OPEN/RESOLVED status, never monitor URLs or recipient emails. Organization membership is required.
+
+### Incident and recovery demo
+
+1. Register and create a monitor for `http://demo-target:8080/health` with a 30-second interval.
+2. Set the target unhealthy with `curl -H 'Content-Type: application/json' -d '{"healthy":false}' http://localhost:8081/control`.
+3. After two failed checks, open the incident API and Mailpit. Exactly one incident and one `[Pulso] Demo Target is DOWN` message should exist.
+4. Set the target healthy with `curl -H 'Content-Type: application/json' -d '{"healthy":true}' http://localhost:8081/control`.
+5. After the next check, the same incident is resolved with a duration and Mailpit contains one `[Pulso] Demo Target recovered` message. No duplicate incidents or notification jobs are created.
+
 ## Local development without containers for the applications
 
 Start PostgreSQL and Mailpit, then run each application in a separate terminal:
@@ -210,4 +234,4 @@ make compose-config   # Validate Compose configuration
 
 ## Demonstration status
 
-The current smoke path starts the stack, applies migrations, registers an owner, creates a monitor and verifies automatic healthy, repeated-failure and recovery checks with their persisted results. Incident and alert delivery will be added next.
+The current smoke path starts the stack, applies migrations, registers an owner, creates a monitor, forces two failures to open an incident and send its alert, then restores the target to close the incident and send recovery. Detailed metrics and public status pages remain for later deliveries.
