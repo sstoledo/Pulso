@@ -32,6 +32,16 @@ type CheckResult struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
+type Incident struct {
+	ID         pgtype.UUID        `json:"id"`
+	MonitorID  pgtype.UUID        `json:"monitor_id"`
+	OpenedAt   pgtype.Timestamptz `json:"opened_at"`
+	ResolvedAt pgtype.Timestamptz `json:"resolved_at"`
+	DurationMs pgtype.Int8        `json:"duration_ms"`
+	Reason     string             `json:"reason"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
 type Membership struct {
 	OrganizationID pgtype.UUID        `json:"organization_id"`
 	UserID         pgtype.UUID        `json:"user_id"`
