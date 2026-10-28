@@ -59,11 +59,12 @@ type Summary struct {
 }
 
 type Service struct {
+	pool    *pgxpool.Pool
 	queries *sqlc.Queries
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{queries: sqlc.New(pool)}
+	return &Service{pool: pool, queries: sqlc.New(pool)}
 }
 
 func (s *Service) Create(ctx context.Context, organizationID string, input CreateInput) (Monitor, error) {
@@ -213,7 +214,13 @@ func (s *Service) SetEnabled(ctx context.Context, organizationID, monitorID stri
 	if err != nil {
 		return Monitor{}, err
 	}
-	monitor, err := s.queries.SetMonitorEnabled(ctx, sqlc.SetMonitorEnabledParams{
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Monitor{}, fmt.Errorf("begin monitor enabled change: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	queries := s.queries.WithTx(tx)
+	monitor, err := queries.SetMonitorEnabled(ctx, sqlc.SetMonitorEnabledParams{
 		ID: params.ID, OrganizationID: params.OrganizationID, Enabled: enabled,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -221,6 +228,14 @@ func (s *Service) SetEnabled(ctx context.Context, organizationID, monitorID stri
 	}
 	if err != nil {
 		return Monitor{}, fmt.Errorf("set monitor enabled: %w", err)
+	}
+	if !enabled {
+		if err := queries.DeletePendingCheckJobsForMonitor(ctx, monitor.ID); err != nil {
+			return Monitor{}, fmt.Errorf("cancel pending checks: %w", err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Monitor{}, fmt.Errorf("commit monitor enabled change: %w", err)
 	}
 	return monitorFromModel(monitor), nil
 }
