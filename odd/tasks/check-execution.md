@@ -20,8 +20,8 @@ S5. "Pruebas del worker con servidores HTTP de prueba.", "Pruebas de integració
 - [x] T1b (S1, S2) — inline on `feat/check-result-store` — check_results schema and idempotent result/state queries — commit: `83d6d6d`.
 - [x] T2a (S1) — inline on `feat/http-executor` — HTTP outcomes, timeout, cancellation and safe summaries — commit: `f107748`.
 - [x] T2b (S3) — inline on `feat/ssrf-transport` — SSRF destination validation and IP-pinned transport — commit: `5827920`.
-- [x] T2c (S3) — inline on `feat/ssrf-redirects` — manually revalidated redirects and regression coverage — commit: recording after commit.
-- [ ] T3a (S1-S5) — inline on `feat/check-scheduler` — scheduler, claiming, stale recovery and pause behavior — commit: pending.
+- [x] T2c (S3) — inline on `feat/ssrf-redirects` — manually revalidated redirects and regression coverage — commit: `f8b94f4`.
+- [x] T3a (S1-S5) — inline on `feat/check-scheduler` — scheduler, claiming, stale recovery and pause behavior — commit: recording after commit.
 - [ ] T3b (S1-S5) — inline on `feat/check-worker-v2` — bounded worker pool, transactional results/state transitions and concurrency tests — commit: pending.
 - [ ] T4 (S5) — inline on `docs/check-execution-v2` — controllable demo target, README/operations and verification documentation — commit: pending.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1, 2, 4 and 5 — restructured full-feature verification — evidence: pending.
