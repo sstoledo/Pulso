@@ -421,6 +421,69 @@ paths:
           $ref: "#/components/responses/OrganizationForbidden"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /api/v1/orgs/{organizationID}/status-page:
+    get:
+      operationId: getStatusPageConfig
+      summary: Read the organization status page configuration
+      tags: [Status pages]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+      responses:
+        "200":
+          description: The current slug, title and publication state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StatusPageConfig" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+    patch:
+      operationId: updateStatusPageConfig
+      summary: Update the organization status page configuration
+      tags: [Status pages]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StatusPageConfigInput" }
+      responses:
+        "200":
+          description: The updated configuration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StatusPageConfig" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "409":
+          description: Another organization already uses this slug.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+  /api/v1/public/status/{slug}:
+    get:
+      operationId: getPublicStatusPage
+      summary: Read a published status page anonymously
+      tags: [Status pages]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/StatusSlug"
+      responses:
+        "200":
+          description: Public page without monitor URLs, identifiers, emails or internal configuration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicStatusPage" }
+        "404":
+          $ref: "#/components/responses/StatusPageNotFound"
 components:
   parameters:
     OrganizationID:
@@ -433,6 +496,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    StatusSlug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[a-z0-9](?:[a-z0-9-]{1,62}[a-z0-9])?$" }
   securitySchemes:
     cookieAuth:
       type: apiKey
@@ -471,6 +539,12 @@ components:
             $ref: "#/components/schemas/Error"
     OrganizationForbidden:
       description: The user does not belong to the organization.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    StatusPageNotFound:
+      description: The status page does not exist or is not published.
       content:
         application/json:
           schema:
@@ -707,4 +781,59 @@ components:
         status:
           type: string
           const: unavailable
+      additionalProperties: false
+    StatusPageConfig:
+      type: object
+      required: [slug, title, is_published]
+      properties:
+        slug:
+          type: string
+          pattern: "^[a-z0-9](?:[a-z0-9-]{1,62}[a-z0-9])?$"
+        title: { type: string, minLength: 1, maxLength: 100 }
+        is_published: { type: boolean }
+      additionalProperties: false
+    StatusPageConfigInput:
+      type: object
+      required: [slug, title, is_published]
+      properties:
+        slug:
+          type: string
+          pattern: "^[a-z0-9](?:[a-z0-9-]{1,62}[a-z0-9])?$"
+        title: { type: string, minLength: 1, maxLength: 100 }
+        is_published: { type: boolean }
+      additionalProperties: false
+    PublicStatusPage:
+      type: object
+      required: [title, monitors, incidents]
+      properties:
+        title: { type: string }
+        monitors:
+          type: array
+          items: { $ref: "#/components/schemas/PublicMonitor" }
+        incidents:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/PublicIncident" }
+      additionalProperties: false
+    PublicMonitor:
+      type: object
+      required: [name, status, availability_24h]
+      properties:
+        name: { type: string }
+        status:
+          type: string
+          enum: [UP, DOWN, UNKNOWN]
+        availability_24h: { type: [number, 'null'], format: double, minimum: 0, maximum: 1 }
+      additionalProperties: false
+    PublicIncident:
+      type: object
+      required: [monitor_name, opened_at, resolved_at, duration_ms, status]
+      properties:
+        monitor_name: { type: string }
+        opened_at: { type: string, format: date-time }
+        resolved_at: { type: [string, 'null'], format: date-time }
+        duration_ms: { type: [integer, 'null'], minimum: 0 }
+        status:
+          type: string
+          enum: [OPEN, RESOLVED]
       additionalProperties: false
