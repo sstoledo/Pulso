@@ -70,6 +70,33 @@ func TestExecutorTimeout(t *testing.T) {
 	}
 }
 
+func TestExecutorRedirectPolicy(t *testing.T) {
+	var serverURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/allowed":
+			w.WriteHeader(http.StatusNoContent)
+		case "/redirect-allowed":
+			http.Redirect(w, r, "/allowed", http.StatusFound)
+		case "/redirect-blocked":
+			parsed, _ := url.Parse(serverURL)
+			http.Redirect(w, r, "http://localhost:"+parsed.Port()+"/allowed", http.StatusFound)
+		}
+	}))
+	defer server.Close()
+	serverURL = server.URL
+
+	executor := NewExecutor([]string{"127.0.0.1"})
+	allowed := executor.Check(context.Background(), Target{URL: server.URL + "/redirect-allowed", TimeoutMS: 1000, ExpectedStatusMin: 200, ExpectedStatusMax: 399})
+	if !allowed.Success {
+		t.Fatalf("allowed redirect = %#v", allowed)
+	}
+	blocked := executor.Check(context.Background(), Target{URL: server.URL + "/redirect-blocked", TimeoutMS: 1000, ExpectedStatusMin: 200, ExpectedStatusMax: 399})
+	if blocked.Success || blocked.ErrorSummary != "destination blocked" {
+		t.Fatalf("blocked redirect = %#v", blocked)
+	}
+}
+
 func TestExecutorBlocksInternalDestinationsByDefault(t *testing.T) {
 	urls := []string{
 		"http://127.0.0.1:8080", "http://10.0.0.1:8080", "http://169.254.1.1:8080",

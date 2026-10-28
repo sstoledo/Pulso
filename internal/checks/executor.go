@@ -26,6 +26,8 @@ var blockedPrefixes = []net.IPNet{
 	mustCIDR("240.0.0.0/4"),
 }
 
+const maxRedirects = 5
+
 type Target struct {
 	URL               string
 	TimeoutMS         int
@@ -71,20 +73,43 @@ func (e *Executor) Check(ctx context.Context, target Target) Result {
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(target.TimeoutMS)*time.Millisecond)
 		defer cancel()
 	}
-	response, err := e.executeOnce(ctx, target.URL)
-	if err != nil {
-		return Result{LatencyMS: elapsedMS(started), ErrorSummary: summaryForError(ctx, err)}
+
+	currentURL := target.URL
+	for redirectCount := 0; ; redirectCount++ {
+		response, err := e.executeOnce(ctx, currentURL)
+		if err != nil {
+			return Result{LatencyMS: elapsedMS(started), ErrorSummary: summaryForError(ctx, err)}
+		}
+		status := response.StatusCode
+		if isRedirect(status) {
+			location := response.Header.Get("Location")
+			if location == "" {
+				return Result{HTTPStatus: &status, LatencyMS: elapsedMS(started), ErrorSummary: "invalid redirect"}
+			}
+			next, err := response.Location()
+			if closeErr := drainAndClose(response); closeErr != nil {
+				return Result{HTTPStatus: &status, LatencyMS: elapsedMS(started), ErrorSummary: summaryForError(ctx, closeErr)}
+			}
+			if err != nil {
+				return Result{HTTPStatus: &status, LatencyMS: elapsedMS(started), ErrorSummary: "invalid redirect"}
+			}
+			if redirectCount >= maxRedirects {
+				return Result{HTTPStatus: &status, LatencyMS: elapsedMS(started), ErrorSummary: "too many redirects"}
+			}
+			currentURL = next.String()
+			continue
+		}
+
+		if err := drainAndClose(response); err != nil {
+			return Result{HTTPStatus: &status, LatencyMS: elapsedMS(started), ErrorSummary: summaryForError(ctx, err)}
+		}
+		success := status >= target.ExpectedStatusMin && status <= target.ExpectedStatusMax
+		result := Result{Success: success, HTTPStatus: &status, LatencyMS: elapsedMS(started)}
+		if !success {
+			result.ErrorSummary = "unexpected HTTP status"
+		}
+		return result
 	}
-	status := response.StatusCode
-	if err := drainAndClose(response); err != nil {
-		return Result{HTTPStatus: &status, LatencyMS: elapsedMS(started), ErrorSummary: summaryForError(ctx, err)}
-	}
-	success := status >= target.ExpectedStatusMin && status <= target.ExpectedStatusMax
-	result := Result{Success: success, HTTPStatus: &status, LatencyMS: elapsedMS(started)}
-	if !success {
-		result.ErrorSummary = "unexpected HTTP status"
-	}
-	return result
 }
 
 func (e *Executor) executeOnce(ctx context.Context, targetURL string) (*http.Response, error) {
@@ -188,6 +213,11 @@ func mustCIDR(value string) net.IPNet {
 
 func normalizeHost(host string) string {
 	return strings.ToLower(strings.TrimSuffix(strings.TrimSpace(host), "."))
+}
+
+func isRedirect(status int) bool {
+	return status == http.StatusMovedPermanently || status == http.StatusFound || status == http.StatusSeeOther ||
+		status == http.StatusTemporaryRedirect || status == http.StatusPermanentRedirect
 }
 
 func drainAndClose(response *http.Response) error {
