@@ -17,6 +17,7 @@ WITH candidates AS (
     FROM notification_jobs AS j
     WHERE j.status = 'pending'
       AND j.next_attempt_at <= now()
+      AND (j.locked_at IS NULL OR j.locked_at < $2)
     ORDER BY j.next_attempt_at, j.id
     FOR UPDATE OF j SKIP LOCKED
     LIMIT $1
@@ -36,6 +37,11 @@ RETURNING j.id, j.incident_id, j.kind, j.attempts, j.max_attempts,
           m.name AS monitor_name, o.name AS organization_name, u.email AS recipient_email
 `
 
+type ClaimNotificationJobsParams struct {
+	Limit       int32              `json:"limit"`
+	StaleBefore pgtype.Timestamptz `json:"stale_before"`
+}
+
 type ClaimNotificationJobsRow struct {
 	ID               pgtype.UUID        `json:"id"`
 	IncidentID       pgtype.UUID        `json:"incident_id"`
@@ -51,8 +57,8 @@ type ClaimNotificationJobsRow struct {
 	RecipientEmail   string             `json:"recipient_email"`
 }
 
-func (q *Queries) ClaimNotificationJobs(ctx context.Context, limit int32) ([]ClaimNotificationJobsRow, error) {
-	rows, err := q.db.Query(ctx, claimNotificationJobs, limit)
+func (q *Queries) ClaimNotificationJobs(ctx context.Context, arg ClaimNotificationJobsParams) ([]ClaimNotificationJobsRow, error) {
+	rows, err := q.db.Query(ctx, claimNotificationJobs, arg.Limit, arg.StaleBefore)
 	if err != nil {
 		return nil, err
 	}

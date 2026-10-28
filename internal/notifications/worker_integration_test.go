@@ -84,6 +84,46 @@ func TestNotificationStopsAfterMaximumAttempts(t *testing.T) {
 	assertNotificationState(t, pool, "failed", 5, 5)
 }
 
+type blockingMailer struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (m *blockingMailer) Send(context.Context, Message) error {
+	m.started <- struct{}{}
+	<-m.release
+	return nil
+}
+
+func TestNotificationConcurrentDispatchClaimsOnce(t *testing.T) {
+	pool, _, _ := newNotificationFixture(t)
+	mailer := &blockingMailer{started: make(chan struct{}, 2), release: make(chan struct{})}
+	logger := discardNotificationLogger()
+	first := NewWorker(pool, mailer, logger)
+	second := NewWorker(pool, mailer, logger)
+	errs := make(chan error, 2)
+
+	go func() { errs <- first.Dispatch(context.Background()) }()
+	select {
+	case <-mailer.started:
+	case <-time.After(3 * time.Second):
+		t.Fatal("first send did not start")
+	}
+	go func() { errs <- second.Dispatch(context.Background()) }()
+	select {
+	case <-mailer.started:
+		t.Error("second worker sent a leased notification")
+	case <-time.After(250 * time.Millisecond):
+	}
+	close(mailer.release)
+	for range 2 {
+		if err := <-errs; err != nil {
+			t.Fatal(err)
+		}
+	}
+	assertNotificationState(t, pool, "sent", 1, 1)
+}
+
 func newNotificationFixture(t *testing.T) (*pgxpool.Pool, auth.Identity, *fakeMailer) {
 	t.Helper()
 	databaseURL := os.Getenv("PULSO_TEST_DATABASE_URL")

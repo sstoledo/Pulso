@@ -10,6 +10,7 @@ WITH candidates AS (
     FROM notification_jobs AS j
     WHERE j.status = 'pending'
       AND j.next_attempt_at <= now()
+      AND (j.locked_at IS NULL OR j.locked_at < sqlc.arg(stale_before))
     ORDER BY j.next_attempt_at, j.id
     FOR UPDATE OF j SKIP LOCKED
     LIMIT $1

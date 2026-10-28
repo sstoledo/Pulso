@@ -23,7 +23,7 @@ S5. The main demonstration is "registrar un usuario, crear un monitor, simular u
 - [x] T3b (S3) — inline on `feat/smtp-mailer` — SMTP client, worker runtime configuration and Mailpit integration — commit: recording after commit.
 - [x] T4 (S4) — inline on `feat/incident-api` — paginated incident queries and organization/member API tests — commit: recording after commit.
 - [x] T5 (S5) — inline on `docs/incident-alerts` — OpenAPI, README and full Mailpit demo — commit: recording after commit.
-- [ ] T6 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema/transactions), 2 (tenant/credentials), and 4 (concurrency/idempotency) — full feature verification — evidence: pending.
+- [x] T6 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema/transactions), 2 (tenant/credentials), and 4 (concurrency/idempotency) — full feature verification — evidence: independent PASS after one bounded lease correction.
 
 ## Log
 
@@ -46,3 +46,9 @@ L8. T4 evidence: authenticated incident listing returns safe fields, OPEN/RESOLV
 L9. Full Mailpit demo found a startup blocker: Chi panicked with `attempting to Mount() a handler on an existing path` because monitors and incidents were mounted twice on `/api/v1/orgs/{organizationID}`. Group both under one organization router instead. The 502 came from the API being down, not from Vite or SMTP.
 
 L10. Route fix evidence: API startup and the full Compose demo now pass. Exactly one open incident and one `[Pulso] Demo Target is DOWN` email were produced, followed by one resolved incident with duration and one `[Pulso] Demo Target recovered` email. Incident API returned `1 RESOLVED` with non-null duration. OpenAPI documents incident listing and README documents outbox idempotency, retries and demo steps.
+
+L11. Independent verification returned BLOCKED for S3: `ClaimNotificationJobs` wrote `locked_at` but did not exclude active leases, so two workers could send the same job. Add lease-aware eligibility and a blocking-mailer regression that proves only one worker dispatches while the first send is blocked. S1, S2, S4 and S5 passed. Scratch `/tmp/opencode/pulso-verify-gr7S3x`, `/tmp/opencode/pulso-baseline-AYmNbg`, Compose project `pulsoverify-gr7s3x`, and images await parent cleanup.
+
+L12. Correction evidence: the concurrent blocking-mailer test was RED with two sends and is now GREEN with one. Claim eligibility excludes active leases while allowing stale recovery, using the worker's configured lease threshold. Real PostgreSQL integration and integration-enabled `make check` passed. Initial verifier scratch resources were cleaned.
+
+L13. Final verification: independent recheck at `8a08012` returned PASS for S3. Two separate OS worker processes produced first_send=true, second_send=false, then status=sent with attempts=1 and history=1. Parent spot check passed after starting and migrating the isolated database. Prior independent MET verdicts stand for S1, S2, S4 and S5. Scratch resources were cleaned. Delivery 4 is ready for Summary-only stacked PR submission with no size exceptions.

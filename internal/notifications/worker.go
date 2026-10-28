@@ -56,12 +56,13 @@ func (w *Worker) Run(ctx context.Context) error {
 }
 
 func (w *Worker) Dispatch(ctx context.Context) error {
-	if _, err := w.queries.RecoverStaleNotificationJobs(ctx, pgtype.Timestamptz{
-		Time: time.Now().UTC().Add(-w.LeaseDuration), Valid: true,
-	}); err != nil {
+	staleBefore := time.Now().UTC().Add(-w.LeaseDuration)
+	if _, err := w.queries.RecoverStaleNotificationJobs(ctx, pgtype.Timestamptz{Time: staleBefore, Valid: true}); err != nil {
 		return fmt.Errorf("recover stale notification jobs: %w", err)
 	}
-	jobs, err := w.queries.ClaimNotificationJobs(ctx, w.BatchSize)
+	jobs, err := w.queries.ClaimNotificationJobs(ctx, sqlc.ClaimNotificationJobsParams{
+		Limit: w.BatchSize, StaleBefore: pgtype.Timestamptz{Time: staleBefore, Valid: true},
+	})
 	if err != nil {
 		return fmt.Errorf("claim notification jobs: %w", err)
 	}
