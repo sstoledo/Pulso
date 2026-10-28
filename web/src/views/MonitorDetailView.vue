@@ -6,6 +6,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '../app/auth'
 import { incidentsApi } from '../features/incidents/api'
 import { monitorsApi } from '../features/monitors/api'
+import LatencyChart from '../features/monitors/LatencyChart.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -115,6 +116,8 @@ function date(value: string | null): string {
           <p class="mt-1 text-xl font-bold">{{ milliseconds(metrics.p95_latency_ms) }}</p>
         </div>
       </div>
+
+      <LatencyChart :series="metrics.series" />
 
       <section aria-labelledby="checks-title" class="mt-8">
         <h2 id="checks-title" class="text-xl font-semibold">Check history</h2>
