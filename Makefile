@@ -27,14 +27,14 @@ lint:
 	cd web && npm run lint
 
 test:
-	go test $(GO_PACKAGES)
+	go test -p 1 $(GO_PACKAGES)
 	cd web && npm test
 
 migrate:
 	PULSO_DATABASE_URL="$(PULSO_DATABASE_URL)" go run ./cmd/migrate
 
 test-integration: migrate
-	PULSO_TEST_DATABASE_URL="$(PULSO_TEST_DATABASE_URL)" go test -count=1 ./internal/auth ./internal/monitors
+	PULSO_TEST_DATABASE_URL="$(PULSO_TEST_DATABASE_URL)" go test -p 1 -count=1 ./internal/auth ./internal/monitors ./internal/checks
 
 build:
 	go build ./cmd/api ./cmd/worker ./cmd/migrate
