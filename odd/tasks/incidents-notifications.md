@@ -16,8 +16,8 @@ S5. The main demonstration is "registrar un usuario, crear un monitor, simular u
 
 ## Tasks
 
-- [x] T1a (S1, S2) — inline on `feat/incident-persistence` — incident schema, transition queries and unit rules — commit: recording after commit.
-- [ ] T1b (S3) — inline on `feat/notification-persistence` — outbox, idempotency, claim/retry and attempt-history schema — commit: pending.
+- [x] T1a (S1, S2) — inline on `feat/incident-persistence` — incident schema, transition queries and unit rules — commit: `6947773`.
+- [x] T1b (S3) — inline on `feat/notification-persistence` — outbox, idempotency, claim/retry and attempt-history schema — commit: recording after commit.
 - [ ] T2 (S1, S2) — inline on `feat/incident-transitions` — worker transactional incident/open-close integration and concurrency tests — commit: pending.
 - [ ] T3 (S3) — inline on `feat/notification-worker` — SMTP outbox dispatcher, idempotency, attempt logging, backoff and fake-mailer tests — commit: pending.
 - [ ] T4 (S4) — inline on `feat/incident-api` — paginated incident queries and organization/member API tests — commit: pending.
