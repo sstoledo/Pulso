@@ -22,6 +22,9 @@ type Config struct {
 	WorkerBatchSize        int
 	WorkerPollInterval     time.Duration
 	CheckAllowPrivateHosts []string
+	SMTPHost               string
+	SMTPPort               int
+	SMTPFrom               string
 }
 
 func Load() (Config, error) {
@@ -35,10 +38,21 @@ func Load() (Config, error) {
 		WorkerBatchSize:        20,
 		WorkerPollInterval:     time.Second,
 		CheckAllowPrivateHosts: parseHostList(os.Getenv("PULSO_CHECK_ALLOW_PRIVATE_HOSTS")),
+		SMTPHost:               valueOrDefault("PULSO_SMTP_HOST", "mailpit"),
+		SMTPPort:               1025,
+		SMTPFrom:               valueOrDefault("PULSO_SMTP_FROM", "pulso@localhost"),
 	}
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, errors.New("PULSO_DATABASE_URL is required")
+	}
+
+	if raw := os.Getenv("PULSO_SMTP_PORT"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 || value > 65535 {
+			return Config{}, fmt.Errorf("PULSO_SMTP_PORT must be between 1 and 65535: %q", raw)
+		}
+		cfg.SMTPPort = value
 	}
 
 	if strings.EqualFold(cfg.Environment, "production") && len(cfg.CheckAllowPrivateHosts) > 0 {
