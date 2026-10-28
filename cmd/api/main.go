@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"pulso/internal/auth"
+	"pulso/internal/incidents"
 	"pulso/internal/monitors"
 	"pulso/internal/platform/config"
 	"pulso/internal/platform/database"
@@ -47,6 +48,7 @@ func run(logger *slog.Logger) error {
 	router := httpx.NewRouter(database.Checker{Pool: pool}, logger)
 	router.Mount("/api/v1", auth.NewHTTPHandler(authService, cfg.CookieSecure, cfg.WebOrigin, logger))
 	router.Mount("/api/v1/orgs/{organizationID}", monitors.NewHTTPHandler(monitors.NewService(pool), authService, cfg.WebOrigin, logger))
+	router.Mount("/api/v1/orgs/{organizationID}", incidents.NewHTTPHandler(incidents.NewService(pool), authService, logger))
 
 	server := &http.Server{
 		Addr:              cfg.APIAddress,

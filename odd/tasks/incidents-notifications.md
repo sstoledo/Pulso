@@ -21,7 +21,7 @@ S5. The main demonstration is "registrar un usuario, crear un monitor, simular u
 - [x] T2 (S1, S2) — inline on `feat/incident-transitions` — worker transactional incident/open-close integration and concurrency tests — commit: recording after commit.
 - [x] T3a (S3) — inline on `feat/notification-worker` — outbox dispatcher, idempotency, attempt logging, backoff and fake-mailer tests — commit: `34ff145`.
 - [x] T3b (S3) — inline on `feat/smtp-mailer` — SMTP client, worker runtime configuration and Mailpit integration — commit: recording after commit.
-- [ ] T4 (S4) — inline on `feat/incident-api` — paginated incident queries and organization/member API tests — commit: pending.
+- [x] T4 (S4) — inline on `feat/incident-api` — paginated incident queries and organization/member API tests — commit: recording after commit.
 - [ ] T5 (S5) — inline on `docs/incident-alerts` — OpenAPI, README and full Mailpit demo — commit: pending.
 - [ ] T6 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1 (schema/transactions), 2 (tenant/credentials), and 4 (concurrency/idempotency) — full feature verification — evidence: pending.
 
@@ -40,3 +40,5 @@ L5. T2 evidence: worker integration now asserts zero incidents after the first f
 L6. T3a evidence: fake-mailer integration passes one successful send with no duplicate dispatch, two failures followed by success on the third attempt, and terminal failure after exactly five attempts. Attempt history, status, retry counts and idempotent dispatch are asserted against real PostgreSQL.
 
 L7. T3b evidence: added a deadline-aware SMTP client and runtime configuration for host, port and sender. The worker now runs check and notification loops concurrently with shared cancellation. Go tests, vet and Compose validation passed; actual Mailpit delivery remains the full-demo verification step.
+
+L8. T4 evidence: authenticated incident listing returns safe fields, OPEN/RESOLVED status, pagination and monitor filters without URLs or emails. Non-members receive 403 and unknown monitor filters return empty results. The partial unique index rejected the fixture's 11 simultaneous open incidents, so history is created through valid close transitions.
