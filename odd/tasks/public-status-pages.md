@@ -18,7 +18,7 @@ S5. The SPA public route renders organization/page title, public monitors and in
 
 - [x] T1a (S1, S4) — inline on `feat/status-page-schema` — status page schema, unique slugs and registration creation — commit: `bdfeece`.
 - [x] T1b (S1, S4) — inline on `feat/status-page-config` — authenticated organization-scoped configuration API — commit: recording after commit.
-- [ ] T2 (S2-S4) — inline on `feat/public-status-api` — anonymous public DTO, monitor availability and recent incidents with isolation tests — commit: pending.
+- [x] T2 (S2-S4) — inline on `feat/public-status-api` — anonymous public DTO, monitor availability and recent incidents with isolation tests — commit: recording after commit.
 - [ ] T3 (S2, S5) — inline on `feat/public-status-ui` — anonymous /status/:slug view with loading/empty/error states — commit: pending.
 - [ ] T4 (S1-S5) — inline on `docs/public-status` — OpenAPI, README and anonymous full-stack demo — commit: pending.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk item 2 (public/private data boundary) — full feature verification — evidence: pending.
@@ -34,3 +34,5 @@ L3. Public availability uses the same definition as private metrics: successful 
 L4. T1a evidence: slug generation normalizes organization names and appends the organization UUID prefix, while validation enforces lowercase length and hyphen boundaries. Migration `00008` adds one status page per organization with a unique slug and publication flag. Registration now creates it atomically with user, organization, owner membership and session; integration confirms a valid unpublished slug.
 
 L5. T1b evidence: authenticated GET/PATCH configuration trims and lowercases input, rejects invalid slugs and empty titles with 422, rejects a slug already used by another organization with 409, and returns 403/401 for foreign organizations and anonymous callers. `make check` with a live test database passed, including the new `internal/statuspages` integration suite.
+
+L6. T2 evidence: `GET /api/v1/public/status/{slug}` needs no session and returns title, public monitors with nullable 24-hour availability and at most five newest incidents with monitor name, timestamps, duration and OPEN/RESOLVED. Hidden monitors, their incidents and their check data never appear. The public body contains no monitor URL, identifier, organization identifier, incident reason or monitor configuration; unpublished and unknown slugs return an identical 404. Removing the `show_public` filter produced the expected RED failure before restoring it.

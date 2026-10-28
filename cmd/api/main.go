@@ -54,6 +54,7 @@ func run(logger *slog.Logger) error {
 	organizationRouter.Get("/incidents", incidents.NewHTTPHandler(incidents.NewService(pool), authService, logger).ServeHTTP)
 	organizationRouter.Mount("/status-page", statuspages.NewHTTPHandler(statuspages.NewService(pool), authService, cfg.WebOrigin, logger))
 	router.Mount("/api/v1/orgs/{organizationID}", organizationRouter)
+	router.Mount("/api/v1/public", statuspages.NewPublicHTTPHandler(statuspages.NewService(pool), logger))
 
 	server := &http.Server{
 		Addr:              cfg.APIAddress,

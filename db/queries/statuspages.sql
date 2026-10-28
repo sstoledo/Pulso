@@ -21,17 +21,21 @@ WHERE organization_id = $1
 RETURNING *;
 
 -- name: ListPublicMonitorsByStatusPage :many
-SELECT m.id, m.name, m.status
+SELECT m.name,
+       m.status,
+       count(r.id) AS total_checks,
+       count(r.id) FILTER (WHERE r.success) AS successful_checks
 FROM status_pages AS p
 JOIN monitors AS m ON m.organization_id = p.organization_id
+LEFT JOIN check_results AS r ON r.monitor_id = m.id AND r.checked_at >= now() - interval '24 hours'
 WHERE p.slug = $1
   AND p.is_published
   AND m.show_public
+GROUP BY m.id, m.name, m.status
 ORDER BY m.name, m.id;
 
 -- name: ListPublicIncidentsByStatusPage :many
-SELECT i.opened_at, i.resolved_at, i.duration_ms, i.resolved_at IS NOT NULL AS resolved,
-       m.name AS monitor_name
+SELECT i.opened_at, i.resolved_at, i.duration_ms, m.name AS monitor_name
 FROM status_pages AS p
 JOIN monitors AS m ON m.organization_id = p.organization_id
 JOIN incidents AS i ON i.monitor_id = m.id
