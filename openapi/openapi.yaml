@@ -342,6 +342,56 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/OrganizationForbidden"
+  /api/v1/orgs/{organizationID}/monitors/{monitorID}/metrics:
+    get:
+      operationId: getMonitorMetrics
+      summary: Get 24-hour availability, latency aggregates and series
+      tags: [Metrics]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - $ref: "#/components/parameters/MonitorID"
+      responses:
+        "200":
+          description: Metrics with null values when no data exists.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MonitorMetrics" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "404":
+          $ref: "#/components/responses/MonitorNotFound"
+  /api/v1/orgs/{organizationID}/monitors/{monitorID}/checks:
+    get:
+      operationId: listMonitorChecks
+      summary: List monitor check results with pagination
+      tags: [Metrics]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - $ref: "#/components/parameters/MonitorID"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        "200":
+          description: A page of check results.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckResultList" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "404":
+          $ref: "#/components/responses/MonitorNotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
   /api/v1/orgs/{organizationID}/incidents:
     get:
       operationId: listIncidents
@@ -512,6 +562,49 @@ components:
               additionalProperties:
                 type: string
           additionalProperties: false
+      additionalProperties: false
+    MonitorMetrics:
+      type: object
+      required: [availability_24h, average_latency_ms, p95_latency_ms, series]
+      properties:
+        availability_24h: { type: [number, 'null'], format: double }
+        average_latency_ms: { type: [number, 'null'], format: double }
+        p95_latency_ms: { type: [integer, 'null'] }
+        series:
+          type: array
+          items: { $ref: "#/components/schemas/MetricPoint" }
+      additionalProperties: false
+    MetricPoint:
+      type: object
+      required: [checked_at, latency_ms, success, http_status]
+      properties:
+        checked_at: { type: string, format: date-time }
+        latency_ms: { type: integer, minimum: 0 }
+        success: { type: boolean }
+        http_status: { type: [integer, 'null'], minimum: 100, maximum: 599 }
+      additionalProperties: false
+    CheckResult:
+      type: object
+      required: [id, checked_at, success, http_status, latency_ms, error_summary]
+      properties:
+        id: { type: string, format: uuid }
+        checked_at: { type: string, format: date-time }
+        success: { type: boolean }
+        http_status: { type: [integer, 'null'], minimum: 100, maximum: 599 }
+        latency_ms: { type: integer, minimum: 0 }
+        error_summary: { type: [string, 'null'] }
+      additionalProperties: false
+    CheckResultList:
+      type: object
+      required: [items, total, page, page_size, total_pages]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CheckResult" }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        page_size: { type: integer, minimum: 1, maximum: 50 }
+        total_pages: { type: integer, minimum: 0 }
       additionalProperties: false
     Incident:
       type: object

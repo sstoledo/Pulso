@@ -17,8 +17,8 @@ S5. The latency chart reflects the same 24-hour series as the API and is respons
 - [x] T1b (S4) — inline on `feat/check-history` — paginated tenant-safe check history — commit: `d78b6ba`.
 - [x] T2a (S1, S4) — inline on `feat/monitor-detail` — detail route, summary, polling and UI tests — commit: `cd24ec8`.
 - [x] T2b (S1, S4) — inline on `feat/check-history-ui` — check and incident history sections with pagination — commit: `cc78928`.
-- [x] T3 (S1, S5) — inline on `feat/latency-chart` — responsive ECharts integration and empty/no-response handling — commit: recording after commit.
-- [ ] T4 (S1-S5) — inline on `docs/metrics-dashboard` — OpenAPI, README and end-to-end metric demo — commit: pending.
+- [x] T3 (S1, S5) — inline on `feat/latency-chart` — responsive ECharts integration and empty/no-response handling — commit: `5c4d0d8`.
+- [x] T4 (S1-S5) — inline on `docs/metrics-dashboard` — OpenAPI, README and end-to-end metric demo — commit: recording after commit.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk item 2 (tenant authorization) — full feature verification — evidence: pending.
 
 ## Log
@@ -33,3 +33,5 @@ L4. T1 evidence: no-data metrics return null availability/average/p95 and an emp
 L5. T2 evidence: the detail route renders current status, 60.0% availability, 250 ms average, 385 ms p95, check history and incident history with pagination. Empty data shows em dash and no fabricated 100%, errors are visible and monitor/metrics/check/incident queries poll every 15 seconds. Full `make check` passed with 23 frontend tests.
 
 L6. T3 evidence: ECharts receives ordered timestamps, actual latency and success values, including a no-response failure that is not converted to zero. Empty data skips chart initialization; resize and dispose are tested. Full `make check` passed with 26 frontend tests. Component-based ECharts imports reduced the main bundle from 1.28 MB to 656 KB; Vite still reports a non-blocking chunk-size warning.
+
+L7. T4 evidence: OpenAPI documents metrics and check history with nullable aggregates and pagination. Redocly validates with the same four known recommended warnings. README defines availability, average/p95 and history behavior. Runtime demo with two successes and two failures returned availability 0.5, non-null latency aggregates, four series rows, four check-history rows and one resolved incident.

@@ -2,7 +2,7 @@
 
 Pulso is a multi-organization platform for monitoring APIs, websites, and services. The MVP will provide availability and latency metrics, incident tracking, email alerts, a private dashboard, and public status pages.
 
-The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. HTTP monitor management is available: authenticated users can create, list, edit, pause, resume and delete organization-scoped monitors through the API or dashboard. The worker now schedules and executes HTTP checks concurrently, records results and latency, and moves monitors between UNKNOWN, UP and DOWN. The worker now opens incidents after two consecutive failures, closes them after recovery, and sends idempotent email alerts with retries and attempt history. Public status pages and detailed metrics are implemented in the next deliveries.
+The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. HTTP monitor management is available: authenticated users can create, list, edit, pause, resume and delete organization-scoped monitors through the API or dashboard. The worker now schedules and executes HTTP checks concurrently, records results and latency, and moves monitors between UNKNOWN, UP and DOWN. The worker now opens incidents after two consecutive failures, closes them after recovery, and sends idempotent email alerts with retries and attempt history. Monitor detail now includes 24-hour availability, average/p95 latency, a latency chart, and paginated check and incident histories. Public status pages are implemented in the next delivery.
 
 ## Architecture
 
@@ -147,6 +147,26 @@ curl -H 'Content-Type: application/json' \
 
 After two failed checks, the dashboard shows DOWN. After the next healthy check, it shows UP again, with the latest latency and check timestamp. Incidents and email alerts are intentionally introduced in the next delivery.
 
+## Metrics and monitor detail
+
+Open a monitor from the dashboard to inspect current status, availability, average/p95 latency, a 24-hour latency chart, check history and incident history. Data refreshes every 15 seconds.
+
+Metric definitions:
+
+- Availability is successful checks divided by all completed checks in the last 24 hours. No data returns `null`, never 100%.
+- Average and p95 latency include only checks with an HTTP response, including unexpected statuses. DNS, connection and timeout failures without a response affect availability but are excluded from latency aggregates.
+- p95 uses PostgreSQL `percentile_cont(0.95)`, including interpolation between adjacent values.
+- Check history exposes checked time, success, nullable HTTP status, nonnegative latency and a safe error summary, with pagination and organization checks.
+
+Endpoints:
+
+```text
+GET /api/v1/orgs/{organizationID}/monitors/{monitorID}/metrics
+GET /api/v1/orgs/{organizationID}/monitors/{monitorID}/checks?page=1&page_size=10
+```
+
+The latency chart uses the same ordered series as the metrics endpoint and does not convert no-response failures to zero latency.
+
 ## Incidents and email alerts
 
 The second consecutive failed check opens one incident and inserts one OPENED outbox job. Further failures preserve that incident. The next successful check resolves it with a duration and inserts one RECOVERED job. Result, monitor state, incident transition and outbox creation commit atomically.
@@ -234,4 +254,4 @@ make compose-config   # Validate Compose configuration
 
 ## Demonstration status
 
-The current smoke path starts the stack, applies migrations, registers an owner, creates a monitor, forces two failures to open an incident and send its alert, then restores the target to close the incident and send recovery. Detailed metrics and public status pages remain for later deliveries.
+The current smoke path starts the stack, applies migrations, registers an owner, creates a monitor, forces two failures to open an incident and send its alert, then restores the target to close the incident and send recovery. Monitor detail exposes 24-hour metrics, a latency chart, check history and incident history. Public status pages remain for the next delivery.
