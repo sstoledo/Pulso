@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../app/api'
 import { useAuthStore } from '../app/auth'
 import { identityFixture } from '../test/fixtures'
+import { incidentsApi } from '../features/incidents/api'
 import { monitorsApi } from '../features/monitors/api'
 import type { Monitor } from '../features/monitors/types'
 import { router } from '../app/router'
@@ -25,6 +26,7 @@ vi.mock('../features/monitors/api', () => ({
     delete: vi.fn(),
   },
 }))
+vi.mock('../features/incidents/api', () => ({ incidentsApi: { list: vi.fn() } }))
 
 const monitor: Monitor = {
   id: '33333333-3333-3333-3333-333333333333',
@@ -65,7 +67,39 @@ describe('MonitorDetailView', () => {
       p95_latency_ms: 385,
       series: [],
     })
-
+    vi.mocked(monitorsApi.checks).mockResolvedValue({
+      items: [
+        {
+          id: 'check-1',
+          checked_at: '2026-01-01T00:00:00Z',
+          success: false,
+          http_status: 500,
+          latency_ms: 300,
+          error_summary: 'unexpected HTTP status',
+        },
+      ],
+      total: 5,
+      page: 2,
+      page_size: 2,
+      total_pages: 3,
+    })
+    vi.mocked(incidentsApi.list).mockResolvedValue({
+      items: [
+        {
+          id: 'incident-1',
+          monitor_id: monitor.id,
+          opened_at: '2026-01-01T00:00:00Z',
+          resolved_at: null,
+          duration_ms: null,
+          reason: 'request timeout',
+          status: 'OPEN',
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 10,
+      total_pages: 1,
+    })
     await router.push(`/monitors/${monitor.id}`)
   })
 
@@ -78,6 +112,18 @@ describe('MonitorDetailView', () => {
     expect(wrapper.text()).toContain('60.0%')
     expect(wrapper.text()).toContain('250 ms')
     expect(wrapper.text()).toContain('385 ms')
+    expect(wrapper.text()).toContain('unexpected HTTP status')
+    expect(wrapper.text()).toContain('request timeout')
+    expect(wrapper.text()).toContain('OPEN')
+
+    await wrapper.get('#next-checks').trigger('click')
+    await flushPromises()
+    expect(monitorsApi.checks).toHaveBeenLastCalledWith(
+      identityFixture.organizations[0]!.id,
+      monitor.id,
+      2,
+      10,
+    )
   })
 
   it('uses empty values instead of fabricating 100 percent', async () => {
@@ -94,11 +140,19 @@ describe('MonitorDetailView', () => {
       page_size: 10,
       total_pages: 0,
     })
-
+    vi.mocked(incidentsApi.list).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 10,
+      total_pages: 0,
+    })
     const wrapper = mountDetail()
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('100%')
+    expect(wrapper.text()).toContain('No checks yet.')
+    expect(wrapper.text()).toContain('No incidents yet.')
   })
 
   it('shows an error when the monitor cannot load', async () => {
