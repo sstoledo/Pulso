@@ -42,6 +42,10 @@ func TestMonitorMetricsAndCheckHistory(t *testing.T) {
 		t.Fatalf("series = %#v", metrics.Series)
 	}
 
+	checks := monitorRequest[monitors.CheckResultList](t, router, http.MethodGet, "/api/v1/orgs/"+orgID+"/monitors/"+monitor.ID+"/checks?page=2&page_size=2", ownerToken, nil, http.StatusOK)
+	if checks.Total != 5 || len(checks.Items) != 2 || checks.TotalPages != 3 || checks.Items[1].HTTPStatus == nil {
+		t.Fatalf("checks = %#v", checks)
+	}
 	monitorRequest[map[string]any](t, router, http.MethodGet, "/api/v1/orgs/"+outsider.Organizations[0].ID+"/monitors/"+monitor.ID+"/metrics", outsiderToken, nil, http.StatusNotFound)
 }
 
