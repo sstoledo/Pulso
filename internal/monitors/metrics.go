@@ -15,7 +15,7 @@ import (
 type Metrics struct {
 	Availability24h  *float64      `json:"availability_24h"`
 	AverageLatencyMS *float64      `json:"average_latency_ms"`
-	P95LatencyMS     *int          `json:"p95_latency_ms"`
+	P95LatencyMS     *float64      `json:"p95_latency_ms"`
 	Series           []MetricPoint `json:"series"`
 }
 
@@ -54,7 +54,7 @@ func (s *MetricsService) Get(ctx context.Context, organizationID, monitorID stri
 	}
 	if row.Responses > 0 {
 		average := row.AverageLatencyMs
-		p95 := int(row.P95LatencyMs)
+		p95 := row.P95LatencyMs
 		metrics.AverageLatencyMS = &average
 		metrics.P95LatencyMS = &p95
 	}

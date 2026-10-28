@@ -49,6 +49,25 @@ func TestMonitorMetricsAndCheckHistory(t *testing.T) {
 	monitorRequest[map[string]any](t, router, http.MethodGet, "/api/v1/orgs/"+outsider.Organizations[0].ID+"/monitors/"+monitor.ID+"/metrics", outsiderToken, nil, http.StatusNotFound)
 }
 
+func TestMonitorMetricsPreservesInterpolatedP95(t *testing.T) {
+	router, pool, owner, ownerToken, _, _ := newMonitorAPI(t)
+	orgID := owner.Organizations[0].ID
+	monitor, err := monitors.NewService(pool).Create(context.Background(), orgID, monitors.CreateInput{Name: "Fractional p95", URL: "https://example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := time.Now().Add(-time.Hour)
+	insertMetricResult(t, pool, monitor.ID, base, true, 200, 100)
+	insertMetricResult(t, pool, monitor.ID, base.Add(time.Minute), true, 200, 101)
+
+	got := monitorRequest[struct {
+		P95LatencyMS float64 `json:"p95_latency_ms"`
+	}](t, router, http.MethodGet, "/api/v1/orgs/"+orgID+"/monitors/"+monitor.ID+"/metrics", ownerToken, nil, http.StatusOK)
+	if got.P95LatencyMS != 100.95 {
+		t.Fatalf("p95 = %v, want percentile_cont result 100.95", got.P95LatencyMS)
+	}
+}
+
 func insertMetricResult(t *testing.T, pool *pgxpool.Pool, monitorID string, checkedAt time.Time, success bool, httpStatus, latency int) {
 	t.Helper()
 	ctx := context.Background()
