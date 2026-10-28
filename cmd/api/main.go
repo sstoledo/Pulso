@@ -20,6 +20,7 @@ import (
 	"pulso/internal/platform/config"
 	"pulso/internal/platform/database"
 	"pulso/internal/platform/httpx"
+	"pulso/internal/statuspages"
 )
 
 func main() {
@@ -51,6 +52,7 @@ func run(logger *slog.Logger) error {
 	organizationRouter := chi.NewRouter()
 	organizationRouter.Mount("/", monitors.NewHTTPHandler(monitors.NewService(pool), authService, cfg.WebOrigin, logger))
 	organizationRouter.Get("/incidents", incidents.NewHTTPHandler(incidents.NewService(pool), authService, logger).ServeHTTP)
+	organizationRouter.Mount("/status-page", statuspages.NewHTTPHandler(statuspages.NewService(pool), authService, cfg.WebOrigin, logger))
 	router.Mount("/api/v1/orgs/{organizationID}", organizationRouter)
 
 	server := &http.Server{

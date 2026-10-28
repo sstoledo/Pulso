@@ -1,5 +1,5 @@
 # Pulso — Public status pages
-Base: `main` at `e5e4fa8`. Branch stack: `feat/status-page-schema` → `feat/public-status-api` → `feat/public-status-ui` → `docs/public-status`, ultimately targeting `main` under the short-lived stacked-branch and Summary-only PR policies.
+Base: `main` at `e5e4fa8`. Branch stack: `feat/status-page-schema` → `feat/status-page-config` → `feat/public-status-api` → `feat/public-status-ui` → `docs/public-status`, ultimately targeting `main` under the short-lived stacked-branch and Summary-only PR policies.
 Test runners: Go unit/PostgreSQL integration, public/private API tests, Vitest, OpenAPI lint and anonymous runtime probes.
 
 ## Specs
@@ -16,7 +16,8 @@ S5. The SPA public route renders organization/page title, public monitors and in
 
 ## Tasks
 
-- [x] T1 (S1, S4) — inline on `feat/status-page-schema` — status page schema, registration slug creation and private configuration API — commit: recording after commit.
+- [x] T1a (S1, S4) — inline on `feat/status-page-schema` — status page schema, unique slugs and registration creation — commit: `bdfeece`.
+- [x] T1b (S1, S4) — inline on `feat/status-page-config` — authenticated organization-scoped configuration API — commit: recording after commit.
 - [ ] T2 (S2-S4) — inline on `feat/public-status-api` — anonymous public DTO, monitor availability and recent incidents with isolation tests — commit: pending.
 - [ ] T3 (S2, S5) — inline on `feat/public-status-ui` — anonymous /status/:slug view with loading/empty/error states — commit: pending.
 - [ ] T4 (S1-S5) — inline on `docs/public-status` — OpenAPI, README and anonymous full-stack demo — commit: pending.
@@ -30,4 +31,6 @@ L2. Delivery 5 PRs #74-#80 were merged and branches cleaned before this feature.
 
 L3. Public availability uses the same definition as private metrics: successful checks divided by all completed checks in 24 hours and null with no data. Public incident reasons are omitted to avoid leaking internal details. Slugs are 3–64 lowercase alphanumeric/hyphen characters and must not start/end with a hyphen. Public status is not published by default; owners must explicitly publish the page.
 
-L4. T1 evidence: slug generation normalizes organization names and appends the organization UUID prefix, while validation enforces lowercase length and hyphen boundaries. Migration `00008` adds one status page per organization with a unique slug and publication flag. Registration now creates it atomically with user, organization, owner membership and session; integration confirms a valid unpublished slug. Private GET/PATCH configuration is mounted with the same authentication, membership and origin middleware.
+L4. T1a evidence: slug generation normalizes organization names and appends the organization UUID prefix, while validation enforces lowercase length and hyphen boundaries. Migration `00008` adds one status page per organization with a unique slug and publication flag. Registration now creates it atomically with user, organization, owner membership and session; integration confirms a valid unpublished slug.
+
+L5. T1b evidence: authenticated GET/PATCH configuration trims and lowercases input, rejects invalid slugs and empty titles with 422, rejects a slug already used by another organization with 409, and returns 403/401 for foreign organizations and anonymous callers. `make check` with a live test database passed, including the new `internal/statuspages` integration suite.
