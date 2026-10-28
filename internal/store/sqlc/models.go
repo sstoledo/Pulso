@@ -106,6 +106,15 @@ type Session struct {
 	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 }
 
+type StatusPage struct {
+	OrganizationID pgtype.UUID        `json:"organization_id"`
+	Slug           string             `json:"slug"`
+	Title          string             `json:"title"`
+	IsPublished    bool               `json:"is_published"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
 type User struct {
 	ID           pgtype.UUID        `json:"id"`
 	Name         string             `json:"name"`

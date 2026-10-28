@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"pulso/internal/auth"
+	"pulso/internal/organizations"
 )
 
 func TestServiceIdentityLifecycle(t *testing.T) {
@@ -27,6 +28,14 @@ func TestServiceIdentityLifecycle(t *testing.T) {
 	cleanupIdentity(t, pool, identity)
 	if len(identity.Organizations) != 1 || identity.Organizations[0].Role != "owner" {
 		t.Fatalf("organizations = %#v", identity.Organizations)
+	}
+	var slug string
+	var published bool
+	if err := pool.QueryRow(ctx, "SELECT slug, is_published FROM status_pages WHERE organization_id = $1::uuid", identity.Organizations[0].ID).Scan(&slug, &published); err != nil {
+		t.Fatalf("status page was not created: %v", err)
+	}
+	if !organizations.ValidStatusSlug(slug) || published {
+		t.Fatalf("status page slug = %q, published = %v", slug, published)
 	}
 	if rawToken == "" || strings.Contains(rawToken, ".") {
 		t.Fatalf("unexpected opaque token %q", rawToken)
