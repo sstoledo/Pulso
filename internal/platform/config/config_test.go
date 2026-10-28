@@ -46,6 +46,17 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsPrivateHostExceptionsInProduction(t *testing.T) {
+	t.Setenv("PULSO_DATABASE_URL", "postgres://localhost/pulso")
+	t.Setenv("PULSO_ENV", "production")
+	t.Setenv("PULSO_CHECK_ALLOW_PRIVATE_HOSTS", "127.0.0.1")
+
+	_, err := config.Load()
+	if err == nil || err.Error() != "PULSO_CHECK_ALLOW_PRIVATE_HOSTS is not allowed in production" {
+		t.Fatalf("Load() error = %v, want production private-host rejection", err)
+	}
+}
+
 func TestLoadRejectsInvalidWorkerConcurrency(t *testing.T) {
 	t.Setenv("PULSO_DATABASE_URL", "postgres://localhost/pulso")
 	t.Setenv("PULSO_WORKER_CONCURRENCY", "0")

@@ -41,6 +41,10 @@ func Load() (Config, error) {
 		return Config{}, errors.New("PULSO_DATABASE_URL is required")
 	}
 
+	if strings.EqualFold(cfg.Environment, "production") && len(cfg.CheckAllowPrivateHosts) > 0 {
+		return Config{}, errors.New("PULSO_CHECK_ALLOW_PRIVATE_HOSTS is not allowed in production")
+	}
+
 	if raw := os.Getenv("PULSO_WORKER_CONCURRENCY"); raw != "" {
 		value, err := strconv.Atoi(raw)
 		if err != nil || value < 1 || value > 100 {
