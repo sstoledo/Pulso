@@ -16,8 +16,8 @@ S5. "Pruebas del worker con servidores HTTP de prueba.", "Pruebas de integració
 
 ## Tasks
 
-- [x] T1a (S1, S2) — inline on `feat/check-job-queue` — check_jobs schema and scheduling/claim/recovery queries — commit: recording after commit.
-- [ ] T1b (S1, S2) — inline on `feat/check-result-store` — check_results schema and idempotent result/state queries — commit: pending.
+- [x] T1a (S1, S2) — inline on `feat/check-job-queue` — check_jobs schema and scheduling/claim/recovery queries — commit: `c971b7c`.
+- [x] T1b (S1, S2) — inline on `feat/check-result-store` — check_results schema and idempotent result/state queries — commit: recording after commit.
 - [ ] T2a (S1) — inline on `feat/http-executor` — HTTP outcomes, timeout, cancellation and safe summaries — commit: pending.
 - [ ] T2b (S3) — inline on `feat/ssrf-transport` — SSRF destination validation, IP-pinned transport, redirects and production config — commit: pending.
 - [ ] T3a (S1-S5) — inline on `feat/check-scheduler` — scheduler, claiming, stale recovery and pause behavior — commit: pending.
