@@ -79,8 +79,7 @@ func (q *Queries) GetStatusPageBySlug(ctx context.Context, slug string) (StatusP
 }
 
 const listPublicIncidentsByStatusPage = `-- name: ListPublicIncidentsByStatusPage :many
-SELECT i.opened_at, i.resolved_at, i.duration_ms, i.resolved_at IS NOT NULL AS resolved,
-       m.name AS monitor_name
+SELECT i.opened_at, i.resolved_at, i.duration_ms, m.name AS monitor_name
 FROM status_pages AS p
 JOIN monitors AS m ON m.organization_id = p.organization_id
 JOIN incidents AS i ON i.monitor_id = m.id
@@ -95,7 +94,6 @@ type ListPublicIncidentsByStatusPageRow struct {
 	OpenedAt    pgtype.Timestamptz `json:"opened_at"`
 	ResolvedAt  pgtype.Timestamptz `json:"resolved_at"`
 	DurationMs  pgtype.Int8        `json:"duration_ms"`
-	Resolved    interface{}        `json:"resolved"`
 	MonitorName string             `json:"monitor_name"`
 }
 
@@ -112,7 +110,6 @@ func (q *Queries) ListPublicIncidentsByStatusPage(ctx context.Context, slug stri
 			&i.OpenedAt,
 			&i.ResolvedAt,
 			&i.DurationMs,
-			&i.Resolved,
 			&i.MonitorName,
 		); err != nil {
 			return nil, err
@@ -126,19 +123,25 @@ func (q *Queries) ListPublicIncidentsByStatusPage(ctx context.Context, slug stri
 }
 
 const listPublicMonitorsByStatusPage = `-- name: ListPublicMonitorsByStatusPage :many
-SELECT m.id, m.name, m.status
+SELECT m.name,
+       m.status,
+       count(r.id) AS total_checks,
+       count(r.id) FILTER (WHERE r.success) AS successful_checks
 FROM status_pages AS p
 JOIN monitors AS m ON m.organization_id = p.organization_id
+LEFT JOIN check_results AS r ON r.monitor_id = m.id AND r.checked_at >= now() - interval '24 hours'
 WHERE p.slug = $1
   AND p.is_published
   AND m.show_public
+GROUP BY m.id, m.name, m.status
 ORDER BY m.name, m.id
 `
 
 type ListPublicMonitorsByStatusPageRow struct {
-	ID     pgtype.UUID `json:"id"`
-	Name   string      `json:"name"`
-	Status string      `json:"status"`
+	Name             string `json:"name"`
+	Status           string `json:"status"`
+	TotalChecks      int64  `json:"total_checks"`
+	SuccessfulChecks int64  `json:"successful_checks"`
 }
 
 func (q *Queries) ListPublicMonitorsByStatusPage(ctx context.Context, slug string) ([]ListPublicMonitorsByStatusPageRow, error) {
@@ -150,7 +153,12 @@ func (q *Queries) ListPublicMonitorsByStatusPage(ctx context.Context, slug strin
 	var items []ListPublicMonitorsByStatusPageRow
 	for rows.Next() {
 		var i ListPublicMonitorsByStatusPageRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Status); err != nil {
+		if err := rows.Scan(
+			&i.Name,
+			&i.Status,
+			&i.TotalChecks,
+			&i.SuccessfulChecks,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
