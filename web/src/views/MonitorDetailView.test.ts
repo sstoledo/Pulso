@@ -155,6 +155,39 @@ describe('MonitorDetailView', () => {
     expect(wrapper.text()).toContain('No incidents yet.')
   })
 
+  it('paginates incident history', async () => {
+    vi.mocked(incidentsApi.list).mockResolvedValue({
+      items: [
+        {
+          id: 'incident-1',
+          monitor_id: monitor.id,
+          opened_at: '2026-01-01T00:00:00Z',
+          resolved_at: null,
+          duration_ms: null,
+          reason: 'request timeout',
+          status: 'OPEN',
+        },
+      ],
+      total: 11,
+      page: 1,
+      page_size: 10,
+      total_pages: 2,
+    })
+    const wrapper = mountDetail()
+    await flushPromises()
+
+    const next = wrapper.get('nav[aria-label="Incident history pages"]').findAll('button')[1]!
+    await next.trigger('click')
+    await flushPromises()
+
+    expect(incidentsApi.list).toHaveBeenLastCalledWith(
+      identityFixture.organizations[0]!.id,
+      monitor.id,
+      2,
+      10,
+    )
+  })
+
   it('shows an error when the monitor cannot load', async () => {
     vi.mocked(monitorsApi.get).mockRejectedValue(
       new ApiError(404, 'monitor_not_found', 'Monitor not found.'),

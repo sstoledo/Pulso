@@ -13,6 +13,7 @@ const route = useRoute()
 const organizationID = computed(() => auth.organizations[0]?.id ?? '')
 const monitorID = computed(() => String(route.params.id))
 const page = ref(1)
+const incidentPage = ref(1)
 
 const monitorQuery = useQuery({
   queryKey: ['monitor', organizationID, monitorID],
@@ -30,8 +31,8 @@ const checksQuery = useQuery({
   refetchInterval: 15000,
 })
 const incidentsQuery = useQuery({
-  queryKey: ['monitor-incidents', organizationID, monitorID],
-  queryFn: () => incidentsApi.list(organizationID.value, monitorID.value, 1, 10),
+  queryKey: ['monitor-incidents', organizationID, monitorID, incidentPage],
+  queryFn: () => incidentsApi.list(organizationID.value, monitorID.value, incidentPage.value, 10),
   refetchInterval: 15000,
 })
 
@@ -210,6 +211,31 @@ function date(value: string | null): string {
             </tbody>
           </table>
         </div>
+        <nav
+          v-if="incidents.total_pages > 0"
+          aria-label="Incident history pages"
+          class="mt-3 flex items-center gap-3 text-sm"
+        >
+          <button
+            id="previous-incidents"
+            type="button"
+            :disabled="incidentPage <= 1"
+            class="rounded border px-3 py-1 disabled:opacity-50"
+            @click="incidentPage--"
+          >
+            Previous
+          </button>
+          <span>Page {{ incidents.page }} of {{ incidents.total_pages }}</span>
+          <button
+            id="next-incidents"
+            type="button"
+            :disabled="incidentPage >= incidents.total_pages"
+            class="rounded border px-3 py-1 disabled:opacity-50"
+            @click="incidentPage++"
+          >
+            Next
+          </button>
+        </nav>
       </section>
     </template>
   </section>
