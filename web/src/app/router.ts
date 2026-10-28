@@ -5,6 +5,7 @@ import RegisterView from '../features/auth/RegisterView.vue'
 import HomeView from '../views/HomeView.vue'
 import MonitorsView from '../views/MonitorsView.vue'
 import MonitorDetailView from '../views/MonitorDetailView.vue'
+import PublicStatusView from '../views/PublicStatusView.vue'
 import { useAuthStore } from './auth'
 
 export const router = createRouter({
@@ -38,6 +39,11 @@ export const router = createRouter({
       name: 'monitor-detail',
       component: MonitorDetailView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/status/:slug',
+      name: 'public-status',
+      component: PublicStatusView,
     },
     {
       path: '/:pathMatch(.*)*',
