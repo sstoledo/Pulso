@@ -8,6 +8,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type CheckJob struct {
+	ID           pgtype.UUID        `json:"id"`
+	MonitorID    pgtype.UUID        `json:"monitor_id"`
+	ScheduledFor pgtype.Timestamptz `json:"scheduled_for"`
+	AvailableAt  pgtype.Timestamptz `json:"available_at"`
+	Status       string             `json:"status"`
+	LockedAt     pgtype.Timestamptz `json:"locked_at"`
+	Attempts     int32              `json:"attempts"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	CompletedAt  pgtype.Timestamptz `json:"completed_at"`
+}
+
 type Membership struct {
 	OrganizationID pgtype.UUID        `json:"organization_id"`
 	UserID         pgtype.UUID        `json:"user_id"`
