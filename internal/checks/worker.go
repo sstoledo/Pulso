@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -20,12 +21,60 @@ type CheckExecutor interface {
 
 type Worker struct {
 	*Scheduler
-	executor CheckExecutor
-	logger   *slog.Logger
+	executor    CheckExecutor
+	logger      *slog.Logger
+	Concurrency int
 }
 
 func NewWorker(pool *pgxpool.Pool, executor CheckExecutor, logger *slog.Logger) *Worker {
-	return &Worker{Scheduler: NewScheduler(pool, logger), executor: executor, logger: logger}
+	return &Worker{Scheduler: NewScheduler(pool, logger), executor: executor, logger: logger, Concurrency: 10}
+}
+
+func (w *Worker) Run(ctx context.Context) error {
+	jobs := make(chan ClaimedJob, w.Concurrency)
+	var workers sync.WaitGroup
+	for index := 0; index < w.Concurrency; index++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for job := range jobs {
+				if err := w.Process(ctx, job); err != nil {
+					w.logger.Error("check job failed", "job_id", job.ID.String(), "error", err)
+				}
+			}
+		}()
+	}
+
+	ticker := time.NewTicker(w.PollInterval)
+	defer ticker.Stop()
+	for {
+		if _, err := w.Schedule(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			w.logger.Error("schedule checks", "error", err)
+		}
+		if _, err := w.Recover(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			w.logger.Error("recover stale checks", "error", err)
+		}
+		claimed, err := w.Claim(ctx, w.BatchSize)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			w.logger.Error("claim checks", "error", err)
+		}
+		for _, job := range claimed {
+			select {
+			case jobs <- job:
+			case <-ctx.Done():
+				close(jobs)
+				workers.Wait()
+				return nil
+			}
+		}
+		select {
+		case <-ctx.Done():
+			close(jobs)
+			workers.Wait()
+			return nil
+		case <-ticker.C:
+		}
+	}
 }
 
 func (w *Worker) ScheduleAndProcess(ctx context.Context) error {
