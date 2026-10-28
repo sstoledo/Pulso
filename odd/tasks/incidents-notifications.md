@@ -18,7 +18,7 @@ S5. The main demonstration is "registrar un usuario, crear un monitor, simular u
 
 - [x] T1a (S1, S2) — inline on `feat/incident-persistence` — incident schema, transition queries and unit rules — commit: `6947773`.
 - [x] T1b (S3) — inline on `feat/notification-persistence` — outbox, idempotency, claim/retry and attempt-history schema — commit: recording after commit.
-- [ ] T2 (S1, S2) — inline on `feat/incident-transitions` — worker transactional incident/open-close integration and concurrency tests — commit: pending.
+- [x] T2 (S1, S2) — inline on `feat/incident-transitions` — worker transactional incident/open-close integration and concurrency tests — commit: recording after commit.
 - [ ] T3 (S3) — inline on `feat/notification-worker` — SMTP outbox dispatcher, idempotency, attempt logging, backoff and fake-mailer tests — commit: pending.
 - [ ] T4 (S4) — inline on `feat/incident-api` — paginated incident queries and organization/member API tests — commit: pending.
 - [ ] T5 (S5) — inline on `docs/incident-alerts` — OpenAPI, README and full Mailpit demo — commit: pending.
@@ -32,4 +32,6 @@ L2. Delivery 3 PRs #39-#48 were merged and local/remote branches cleaned before 
 
 L3. Notification delivery is at-least-once across process crashes because SMTP has no distributed transaction with PostgreSQL. Idempotent outbox keys prevent duplicate jobs and normal retry duplicates; crash-after-send is documented rather than claiming exactly-once delivery. Notification backoff is capped at 60 seconds and uses at most five attempts. No incident/notification behavior is added to public status pages in this delivery.
 
-L4. T1 evidence: transition tests were RED before implementation and now cover no-open on first failure, open on second, no duplicate open, close on recovery and no close without an incident. Migration `00006` adds the partial unique open-incident index, idempotency-key uniqueness, outbox claiming/retry fields and attempt history. sqlc generation and Go tests passed.
+L4. T1 evidence: transition tests were RED before implementation and now cover no-open on first failure, open on second, no duplicate open, close on recovery and no close without an incident. Migrations `00006` and `00007` were split into incident and notification persistence PRs under 400 lines each. The partial unique open-incident index, idempotency-key uniqueness, outbox claiming/retry fields and attempt history are generated and tested.
+
+L5. T2 evidence: worker integration now asserts zero incidents after the first failure, one open incident and one OPENED job after the second, and one resolved incident with duration plus a second RECOVERED job after recovery. Fresh migrations 6 and 7 applied; all executor, scheduler and worker tests passed.

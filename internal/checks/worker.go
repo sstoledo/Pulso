@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"pulso/internal/incidents"
 	"pulso/internal/store/sqlc"
 )
 
@@ -129,6 +130,38 @@ func (w *Worker) Process(ctx context.Context, job ClaimedJob) error {
 		return fmt.Errorf("insert check result: %w", err)
 	}
 	status, failures := ApplyResult(monitor.Status, int(monitor.ConsecutiveFailures), result.Success)
+	openIncident, openErr := queries.GetOpenIncidentByMonitorForUpdate(ctx, monitor.ID)
+	hasOpenIncident := openErr == nil
+	if openErr != nil && !errors.Is(openErr, pgx.ErrNoRows) {
+		return fmt.Errorf("find open incident: %w", openErr)
+	}
+	action := incidents.Action(failures, hasOpenIncident, result.Success)
+	if action.Open {
+		reason := result.ErrorSummary
+		if reason == "" {
+			reason = "check failed"
+		}
+		incident, err := queries.InsertIncident(ctx, sqlc.InsertIncidentParams{MonitorID: monitor.ID, Reason: reason})
+		if err != nil {
+			return fmt.Errorf("open incident: %w", err)
+		}
+		if _, err := queries.InsertNotificationJob(ctx, sqlc.InsertNotificationJobParams{
+			IncidentID: incident.ID, Kind: "OPENED", IdempotencyKey: "incident:" + incident.ID.String() + ":opened",
+		}); err != nil {
+			return fmt.Errorf("create incident notification: %w", err)
+		}
+	}
+	if action.Close {
+		closed, err := queries.CloseIncident(ctx, openIncident.ID)
+		if err != nil {
+			return fmt.Errorf("close incident: %w", err)
+		}
+		if _, err := queries.InsertNotificationJob(ctx, sqlc.InsertNotificationJobParams{
+			IncidentID: closed.ID, Kind: "RECOVERED", IdempotencyKey: "incident:" + closed.ID.String() + ":recovered",
+		}); err != nil {
+			return fmt.Errorf("create recovery notification: %w", err)
+		}
+	}
 	if _, err := queries.UpdateMonitorAfterCheck(ctx, sqlc.UpdateMonitorAfterCheckParams{
 		ID: monitor.ID, Status: status, ConsecutiveFailures: int32(failures),
 		LastCheckAt:   pgtype.Timestamptz{Time: checkedAt, Valid: true},

@@ -70,17 +70,41 @@ func TestWorkerFailureAndRecoveryTransitions(t *testing.T) {
 
 	worker.ScheduleAndProcess(ctx)
 	assertMonitorState(t, pool, monitor.ID, "UNKNOWN", 1)
+	assertIncidentCount(t, pool, monitor.ID, 0, 0)
 	if _, err := pool.Exec(ctx, "UPDATE monitors SET next_check_at = now() - interval '1 second' WHERE id = $1::uuid", monitor.ID); err != nil {
 		t.Fatal(err)
 	}
 	worker.ScheduleAndProcess(ctx)
 	assertMonitorState(t, pool, monitor.ID, "DOWN", 2)
+	assertIncidentCount(t, pool, monitor.ID, 1, 1)
 
 	if _, err := pool.Exec(ctx, "UPDATE monitors SET url = $1, next_check_at = now() - interval '1 second' WHERE id = $2::uuid", healthyServer(t).URL, monitor.ID); err != nil {
 		t.Fatal(err)
 	}
 	worker.ScheduleAndProcess(ctx)
 	assertMonitorState(t, pool, monitor.ID, "UP", 0)
+	var resolved int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM incidents WHERE monitor_id = $1::uuid AND resolved_at IS NOT NULL AND duration_ms IS NOT NULL", monitor.ID).Scan(&resolved); err != nil {
+		t.Fatal(err)
+	}
+	if resolved != 1 {
+		t.Fatalf("resolved incidents = %d, want 1", resolved)
+	}
+	assertIncidentCount(t, pool, monitor.ID, 0, 2)
+}
+
+func assertIncidentCount(t *testing.T, pool *pgxpool.Pool, monitorID string, open, notifications int) {
+	t.Helper()
+	var openCount, notificationCount int
+	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM incidents WHERE monitor_id = $1::uuid AND resolved_at IS NULL", monitorID).Scan(&openCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM notification_jobs WHERE incident_id IN (SELECT id FROM incidents WHERE monitor_id = $1::uuid)", monitorID).Scan(&notificationCount); err != nil {
+		t.Fatal(err)
+	}
+	if openCount != open || notificationCount != notifications {
+		t.Fatalf("open incidents = %d, notifications = %d; want %d/%d", openCount, notificationCount, open, notifications)
+	}
 }
 
 func newWorkerMonitor(t *testing.T, status int) (*pgxpool.Pool, auth.Identity, monitors.Monitor) {
