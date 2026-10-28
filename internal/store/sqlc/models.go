@@ -69,6 +69,28 @@ type Monitor struct {
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
+type NotificationAttempt struct {
+	ID          pgtype.UUID        `json:"id"`
+	JobID       pgtype.UUID        `json:"job_id"`
+	AttemptedAt pgtype.Timestamptz `json:"attempted_at"`
+	Error       pgtype.Text        `json:"error"`
+}
+
+type NotificationJob struct {
+	ID             pgtype.UUID        `json:"id"`
+	IncidentID     pgtype.UUID        `json:"incident_id"`
+	Kind           string             `json:"kind"`
+	IdempotencyKey string             `json:"idempotency_key"`
+	Status         string             `json:"status"`
+	Attempts       int32              `json:"attempts"`
+	MaxAttempts    int32              `json:"max_attempts"`
+	NextAttemptAt  pgtype.Timestamptz `json:"next_attempt_at"`
+	LockedAt       pgtype.Timestamptz `json:"locked_at"`
+	LastError      pgtype.Text        `json:"last_error"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	SentAt         pgtype.Timestamptz `json:"sent_at"`
+}
+
 type Organization struct {
 	ID        pgtype.UUID        `json:"id"`
 	Name      string             `json:"name"`
