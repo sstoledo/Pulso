@@ -178,7 +178,11 @@ function formatDate(value: string | null): string {
               class="border-b border-slate-100 last:border-0"
             >
               <td class="px-4 py-3">
-                <p class="font-medium">{{ monitor.name }}</p>
+                <RouterLink
+                  :to="`/monitors/${monitor.id}`"
+                  class="font-medium text-emerald-700 hover:underline"
+                  >{{ monitor.name }}</RouterLink
+                >
                 <p class="max-w-xs truncate text-xs text-slate-500">{{ monitor.url }}</p>
               </td>
               <td class="px-4 py-3">

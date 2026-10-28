@@ -1,5 +1,12 @@
 import { apiFetch } from '../../app/api'
-import type { Monitor, MonitorInput, MonitorListResult, MonitorSummary } from './types'
+import type {
+  CheckResultList,
+  Monitor,
+  MonitorInput,
+  MonitorListResult,
+  MonitorMetrics,
+  MonitorSummary,
+} from './types'
 
 function organizationPath(organizationID: string): string {
   return `/api/v1/orgs/${encodeURIComponent(organizationID)}`
@@ -9,6 +16,29 @@ export const monitorsApi = {
   list(organizationID: string, page: number, pageSize: number): Promise<MonitorListResult> {
     return apiFetch<MonitorListResult>(
       `${organizationPath(organizationID)}/monitors?page=${page}&page_size=${pageSize}`,
+    )
+  },
+
+  get(organizationID: string, monitorID: string): Promise<Monitor> {
+    return apiFetch<Monitor>(
+      `${organizationPath(organizationID)}/monitors/${encodeURIComponent(monitorID)}`,
+    )
+  },
+
+  metrics(organizationID: string, monitorID: string): Promise<MonitorMetrics> {
+    return apiFetch<MonitorMetrics>(
+      `${organizationPath(organizationID)}/monitors/${encodeURIComponent(monitorID)}/metrics`,
+    )
+  },
+
+  checks(
+    organizationID: string,
+    monitorID: string,
+    page: number,
+    pageSize: number,
+  ): Promise<CheckResultList> {
+    return apiFetch<CheckResultList>(
+      `${organizationPath(organizationID)}/monitors/${encodeURIComponent(monitorID)}/checks?page=${page}&page_size=${pageSize}`,
     )
   },
 
