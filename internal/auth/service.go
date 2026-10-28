@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"pulso/internal/organizations"
 	"pulso/internal/store/sqlc"
 )
 
@@ -136,6 +137,13 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (Identity, 
 		OrganizationID: organization.ID, UserID: user.ID, Role: "owner",
 	}); err != nil {
 		return Identity{}, "", fmt.Errorf("create owner membership: %w", err)
+	}
+	if _, err := queries.CreateStatusPage(ctx, sqlc.CreateStatusPageParams{
+		OrganizationID: organization.ID,
+		Slug:           organizations.NewStatusPageSlug(input.Name, uuid.UUID(organization.ID.Bytes).String()),
+		Title:          organization.Name,
+	}); err != nil {
+		return Identity{}, "", fmt.Errorf("create status page: %w", err)
 	}
 	expiresAt := time.Now().UTC().Add(SessionTTL)
 	if _, err := queries.CreateSession(ctx, sqlc.CreateSessionParams{
