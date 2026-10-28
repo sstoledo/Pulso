@@ -38,3 +38,34 @@ export interface MonitorSummary {
   down: number
   unknown: number
 }
+
+export interface MetricPoint {
+  checked_at: string
+  latency_ms: number
+  success: boolean
+  http_status: number | null
+}
+
+export interface MonitorMetrics {
+  availability_24h: number | null
+  average_latency_ms: number | null
+  p95_latency_ms: number | null
+  series: MetricPoint[]
+}
+
+export interface CheckResult {
+  id: string
+  checked_at: string
+  success: boolean
+  http_status: number | null
+  latency_ms: number
+  error_summary: string | null
+}
+
+export interface CheckResultList {
+  items: CheckResult[]
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+}

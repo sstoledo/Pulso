@@ -14,8 +14,8 @@ S5. The latency chart reflects the same 24-hour series as the API and is respons
 ## Tasks
 
 - [x] T1a (S2, S3) — inline on `feat/metrics-api` — 24-hour aggregates and ordered series with integration tests — commit: `a2691d3`.
-- [x] T1b (S4) — inline on `feat/check-history` — paginated tenant-safe check history — commit: recording after commit.
-- [ ] T2 (S1, S4) — inline on `feat/monitor-detail` — detail route, summary, check/incident histories, polling and UI tests — commit: pending.
+- [x] T1b (S4) — inline on `feat/check-history` — paginated tenant-safe check history — commit: `d78b6ba`.
+- [x] T2 (S1, S4) — inline on `feat/monitor-detail` — detail route, summary, check/incident histories, polling and UI tests — commit: recording after commit.
 - [ ] T3 (S1, S5) — inline on `feat/latency-chart` — responsive ECharts integration and empty/no-response handling — commit: pending.
 - [ ] T4 (S1-S5) — inline on `docs/metrics-dashboard` — OpenAPI, README and end-to-end metric demo — commit: pending.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk item 2 (tenant authorization) — full feature verification — evidence: pending.
@@ -28,3 +28,5 @@ L2. Delivery 4 PRs #58-#66 were merged and local/remote branches cleaned before 
 L3. This delivery does not add public status pages, SSE or WebSockets. Metrics are computed on demand for the current 24-hour window; no TimescaleDB or historical compaction is introduced. No new monitor execution behavior is claimed beyond what existing results already record.
 
 L4. T1 evidence: no-data metrics return null availability/average/p95 and an empty series. Five results with expected success, unexpected HTTP status and a no-response failure produce availability 0.6, average 250 ms and percentile_cont p95 385 ms. Check history paginates five rows correctly and foreign monitor access returns 404. SQL null handling uses responses=0 to distinguish API null from real zero latency.
+
+L5. T2 evidence: the detail route renders current status, 60.0% availability, 250 ms average, 385 ms p95, check history and incident history with pagination. Empty data shows em dash and no fabricated 100%, errors are visible and monitor/metrics/check/incident queries poll every 15 seconds. Full `make check` passed with 23 frontend tests.

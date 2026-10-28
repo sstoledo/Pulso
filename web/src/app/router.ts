@@ -4,6 +4,7 @@ import LoginView from '../features/auth/LoginView.vue'
 import RegisterView from '../features/auth/RegisterView.vue'
 import HomeView from '../views/HomeView.vue'
 import MonitorsView from '../views/MonitorsView.vue'
+import MonitorDetailView from '../views/MonitorDetailView.vue'
 import { useAuthStore } from './auth'
 
 export const router = createRouter({
@@ -30,6 +31,12 @@ export const router = createRouter({
       path: '/monitors',
       name: 'monitors',
       component: MonitorsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/monitors/:id',
+      name: 'monitor-detail',
+      component: MonitorDetailView,
       meta: { requiresAuth: true },
     },
     {
