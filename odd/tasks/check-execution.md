@@ -1,5 +1,5 @@
 # Pulso — Check execution
-Base: `main` at `244e4e9`. Split branch stack: `feat/check-job-queue` → `feat/check-result-store` → `feat/http-executor` → `feat/ssrf-transport` → `feat/check-scheduler` → `feat/check-worker-v2` → `docs/check-execution-v2`, ultimately targeting `main` under the short-lived stacked-branch and Summary-only PR policies.
+Base: `main` at `244e4e9`. Split branch stack: `feat/check-job-queue` → `feat/check-result-store` → `feat/http-executor` → `feat/ssrf-transport` → `feat/ssrf-redirects` → `feat/check-scheduler` → `feat/check-result-worker` → `feat/check-worker-v2` → `docs/check-execution-v2` → `fix/production-ssrf-config`, ultimately targeting `main` under the short-lived stacked-branch and Summary-only PR policies.
 Test runners: Go unit/httptest/PostgreSQL concurrency tests, frontend regression checks, Docker Compose worker/demo-target runtime probes and CI.
 
 ## Specs
@@ -23,7 +23,7 @@ S5. "Pruebas del worker con servidores HTTP de prueba.", "Pruebas de integració
 - [x] T2c (S3) — inline on `feat/ssrf-redirects` — manually revalidated redirects and regression coverage — commit: `f8b94f4`.
 - [x] T3a (S1-S5) — inline on `feat/check-scheduler` — scheduler, claiming, stale recovery and pause behavior — commit: recording after commit.
 - [x] T3b (S1-S5) — inline on `feat/check-result-worker` — transactional results, idempotency and state transitions — commit: `faf536e`.
-- [x] T3c (S1-S5) — inline on `feat/check-worker-v2` — bounded worker pool, runtime configuration and concurrency coverage — commit: `2403266`.
+- [x] T3c (S1-S5) — inline on `feat/check-worker-v2` — bounded worker pool, runtime configuration and concurrency coverage — commits: `2403266`, correction recording after commit.
 - [x] T4 (S5) — inline on `docs/check-execution-v2` — controllable demo target, README/operations and verification documentation — commit: recording after commit.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1, 2, 4 and 5 — restructured full-feature verification — evidence: pending.
 
@@ -52,3 +52,7 @@ L10. Final verification: the independent bounded recheck at `2020f73` returned P
 L11. 2026-10-28 — User selected "Dividir antes de abrir" for the three oversized PRs. Replace the unpublished five-branch stack with cohesive branches: check job queue, check result store, HTTP executor, SSRF transport, scheduler, worker, and demo/docs. Preserve the original verified behavior and regression coverage, then rerun independent verification on the restructured tip before submission. The original branches remain unpublished backups during restructuring.
 
 L12. Restructure evidence: SSRF redirects and worker processing were split further to keep every PR under 400 authored lines. Final sizes: job queue 248, result store 211, HTTP executor 150, SSRF transport 372, redirects 86, scheduler 215, result worker 307, bounded pool 217. Fresh migrations 4 and 5 applied in isolated PostgreSQL. Scheduler, result, pool, config and demo tests passed; the restructured Compose demo again produced UP, preserved UP, DOWN and recovery UP with four results. `make check` passed.
+
+L13. Independent restructured verification returned FAIL for S3 only: copying the pre-fix worker configuration omitted the production private-host rejection. S1, S2, S4 and S5 passed. Restore that exact guard and regression test on `fix/production-ssrf-config`; no other behavior changes. Scratch `/tmp/opencode/pulso-verify-Q7fKbm`, Compose project `pulsoverify-q7fkbm`, and images await parent cleanup.
+
+L14. Correction evidence: the exact production regression was RED, then passed after restoring the explicit guard and its error text. Full `make check` and `git diff --check` passed. Initial verifier scratch resources were cleaned.
