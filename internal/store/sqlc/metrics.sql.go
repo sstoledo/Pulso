@@ -11,6 +11,26 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countCheckResultsByMonitorAndOrg = `-- name: CountCheckResultsByMonitorAndOrg :one
+SELECT count(*)
+FROM check_results AS r
+JOIN monitors AS m ON m.id = r.monitor_id
+WHERE r.monitor_id = $1
+  AND m.organization_id = $2
+`
+
+type CountCheckResultsByMonitorAndOrgParams struct {
+	MonitorID      pgtype.UUID `json:"monitor_id"`
+	OrganizationID pgtype.UUID `json:"organization_id"`
+}
+
+func (q *Queries) CountCheckResultsByMonitorAndOrg(ctx context.Context, arg CountCheckResultsByMonitorAndOrgParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCheckResultsByMonitorAndOrg, arg.MonitorID, arg.OrganizationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getMonitorMetrics24h = `-- name: GetMonitorMetrics24h :one
 SELECT count(*) AS total,
        count(*) FILTER (WHERE r.success) AS successes,
@@ -48,6 +68,58 @@ func (q *Queries) GetMonitorMetrics24h(ctx context.Context, arg GetMonitorMetric
 		&i.P95LatencyMs,
 	)
 	return i, err
+}
+
+const listCheckResultsByMonitorAndOrg = `-- name: ListCheckResultsByMonitorAndOrg :many
+SELECT r.id, r.check_job_id, r.monitor_id, r.checked_at, r.success, r.http_status, r.latency_ms, r.error_summary, r.created_at
+FROM check_results AS r
+JOIN monitors AS m ON m.id = r.monitor_id
+WHERE r.monitor_id = $1
+  AND m.organization_id = $2
+ORDER BY r.checked_at DESC, r.id DESC
+LIMIT $3 OFFSET $4
+`
+
+type ListCheckResultsByMonitorAndOrgParams struct {
+	MonitorID      pgtype.UUID `json:"monitor_id"`
+	OrganizationID pgtype.UUID `json:"organization_id"`
+	Limit          int32       `json:"limit"`
+	Offset         int32       `json:"offset"`
+}
+
+func (q *Queries) ListCheckResultsByMonitorAndOrg(ctx context.Context, arg ListCheckResultsByMonitorAndOrgParams) ([]CheckResult, error) {
+	rows, err := q.db.Query(ctx, listCheckResultsByMonitorAndOrg,
+		arg.MonitorID,
+		arg.OrganizationID,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CheckResult
+	for rows.Next() {
+		var i CheckResult
+		if err := rows.Scan(
+			&i.ID,
+			&i.CheckJobID,
+			&i.MonitorID,
+			&i.CheckedAt,
+			&i.Success,
+			&i.HttpStatus,
+			&i.LatencyMs,
+			&i.ErrorSummary,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMonitorMetricSeries24h = `-- name: ListMonitorMetricSeries24h :many

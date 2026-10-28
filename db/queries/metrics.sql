@@ -18,3 +18,19 @@ WHERE r.monitor_id = $1
   AND m.organization_id = $2
   AND r.checked_at >= now() - interval '24 hours'
 ORDER BY r.checked_at, r.id;
+
+-- name: CountCheckResultsByMonitorAndOrg :one
+SELECT count(*)
+FROM check_results AS r
+JOIN monitors AS m ON m.id = r.monitor_id
+WHERE r.monitor_id = $1
+  AND m.organization_id = $2;
+
+-- name: ListCheckResultsByMonitorAndOrg :many
+SELECT r.*
+FROM check_results AS r
+JOIN monitors AS m ON m.id = r.monitor_id
+WHERE r.monitor_id = $1
+  AND m.organization_id = $2
+ORDER BY r.checked_at DESC, r.id DESC
+LIMIT $3 OFFSET $4;

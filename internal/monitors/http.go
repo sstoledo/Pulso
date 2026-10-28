@@ -71,6 +71,7 @@ func NewHTTPHandler(service *Service, authService *auth.Service, allowedOrigin s
 	router.With(readChain...).Get("/dashboard/summary", handler.summary)
 	router.With(readChain...).Get("/monitors/{monitorID}", handler.get)
 	router.With(readChain...).Get("/monitors/{monitorID}/metrics", handler.monitorMetrics)
+	router.With(readChain...).Get("/monitors/{monitorID}/checks", handler.listChecks)
 	router.With(writeChain...).Post("/monitors", handler.create)
 	router.With(writeChain...).Patch("/monitors/{monitorID}", handler.update)
 	router.With(writeChain...).Delete("/monitors/{monitorID}", handler.delete)
@@ -138,6 +139,20 @@ func (h *HTTPHandler) monitorMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, metrics)
+}
+
+func (h *HTTPHandler) listChecks(w http.ResponseWriter, r *http.Request) {
+	monitorID := chi.URLParam(r, "monitorID")
+	if _, err := h.service.Get(r.Context(), organizationID(r), monitorID); err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	result, err := h.metrics.ListChecks(r.Context(), organizationID(r), monitorID, queryInt(r, "page", 1), queryInt(r, "page_size", 10))
+	if err != nil {
+		h.writeError(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *HTTPHandler) update(w http.ResponseWriter, r *http.Request) {

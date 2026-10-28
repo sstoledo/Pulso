@@ -13,8 +13,8 @@ S5. The latency chart reflects the same 24-hour series as the API and is respons
 
 ## Tasks
 
-- [x] T1a (S2, S3) — inline on `feat/metrics-api` — 24-hour aggregates and ordered series with integration tests — commit: recording after commit.
-- [ ] T1b (S4) — inline on `feat/check-history` — paginated tenant-safe check history — commit: pending.
+- [x] T1a (S2, S3) — inline on `feat/metrics-api` — 24-hour aggregates and ordered series with integration tests — commit: `a2691d3`.
+- [x] T1b (S4) — inline on `feat/check-history` — paginated tenant-safe check history — commit: recording after commit.
 - [ ] T2 (S1, S4) — inline on `feat/monitor-detail` — detail route, summary, check/incident histories, polling and UI tests — commit: pending.
 - [ ] T3 (S1, S5) — inline on `feat/latency-chart` — responsive ECharts integration and empty/no-response handling — commit: pending.
 - [ ] T4 (S1-S5) — inline on `docs/metrics-dashboard` — OpenAPI, README and end-to-end metric demo — commit: pending.
