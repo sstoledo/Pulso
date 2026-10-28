@@ -77,6 +77,21 @@ func (q *Queries) ClaimCheckJobs(ctx context.Context, limit int32) ([]ClaimCheck
 	return items, nil
 }
 
+const completeCheckJob = `-- name: CompleteCheckJob :execrows
+UPDATE check_jobs
+SET status = 'completed', completed_at = now()
+WHERE id = $1
+  AND status = 'running'
+`
+
+func (q *Queries) CompleteCheckJob(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, completeCheckJob, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deletePendingCheckJobsForMonitor = `-- name: DeletePendingCheckJobsForMonitor :exec
 DELETE FROM check_jobs
 WHERE monitor_id = $1
@@ -86,6 +101,82 @@ WHERE monitor_id = $1
 func (q *Queries) DeletePendingCheckJobsForMonitor(ctx context.Context, monitorID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deletePendingCheckJobsForMonitor, monitorID)
 	return err
+}
+
+const insertCheckResult = `-- name: InsertCheckResult :one
+INSERT INTO check_results (
+    check_job_id, monitor_id, checked_at, success, http_status, latency_ms, error_summary
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (check_job_id) DO NOTHING
+RETURNING id, check_job_id, monitor_id, checked_at, success, http_status, latency_ms, error_summary, created_at
+`
+
+type InsertCheckResultParams struct {
+	CheckJobID   pgtype.UUID        `json:"check_job_id"`
+	MonitorID    pgtype.UUID        `json:"monitor_id"`
+	CheckedAt    pgtype.Timestamptz `json:"checked_at"`
+	Success      bool               `json:"success"`
+	HttpStatus   pgtype.Int4        `json:"http_status"`
+	LatencyMs    int32              `json:"latency_ms"`
+	ErrorSummary pgtype.Text        `json:"error_summary"`
+}
+
+func (q *Queries) InsertCheckResult(ctx context.Context, arg InsertCheckResultParams) (CheckResult, error) {
+	row := q.db.QueryRow(ctx, insertCheckResult,
+		arg.CheckJobID,
+		arg.MonitorID,
+		arg.CheckedAt,
+		arg.Success,
+		arg.HttpStatus,
+		arg.LatencyMs,
+		arg.ErrorSummary,
+	)
+	var i CheckResult
+	err := row.Scan(
+		&i.ID,
+		&i.CheckJobID,
+		&i.MonitorID,
+		&i.CheckedAt,
+		&i.Success,
+		&i.HttpStatus,
+		&i.LatencyMs,
+		&i.ErrorSummary,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const lockMonitorByID = `-- name: LockMonitorByID :one
+SELECT id, organization_id, name, url, interval_seconds, timeout_ms, expected_status_min, expected_status_max, enabled, show_public, status, consecutive_failures, last_check_at, last_latency_ms, next_check_at, created_at, updated_at
+FROM monitors
+WHERE id = $1
+FOR UPDATE
+`
+
+func (q *Queries) LockMonitorByID(ctx context.Context, id pgtype.UUID) (Monitor, error) {
+	row := q.db.QueryRow(ctx, lockMonitorByID, id)
+	var i Monitor
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Url,
+		&i.IntervalSeconds,
+		&i.TimeoutMs,
+		&i.ExpectedStatusMin,
+		&i.ExpectedStatusMax,
+		&i.Enabled,
+		&i.ShowPublic,
+		&i.Status,
+		&i.ConsecutiveFailures,
+		&i.LastCheckAt,
+		&i.LastLatencyMs,
+		&i.NextCheckAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const recoverStaleCheckJobs = `-- name: RecoverStaleCheckJobs :execrows
@@ -119,4 +210,57 @@ func (q *Queries) ScheduleDueMonitors(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const updateMonitorAfterCheck = `-- name: UpdateMonitorAfterCheck :one
+UPDATE monitors
+SET status = $2,
+    consecutive_failures = $3,
+    last_check_at = $4,
+    last_latency_ms = $5,
+    next_check_at = CASE WHEN enabled THEN $6::timestamptz ELSE NULL END,
+    updated_at = now()
+WHERE id = $1
+RETURNING id, organization_id, name, url, interval_seconds, timeout_ms, expected_status_min, expected_status_max, enabled, show_public, status, consecutive_failures, last_check_at, last_latency_ms, next_check_at, created_at, updated_at
+`
+
+type UpdateMonitorAfterCheckParams struct {
+	ID                  pgtype.UUID        `json:"id"`
+	Status              string             `json:"status"`
+	ConsecutiveFailures int32              `json:"consecutive_failures"`
+	LastCheckAt         pgtype.Timestamptz `json:"last_check_at"`
+	LastLatencyMs       pgtype.Int4        `json:"last_latency_ms"`
+	NextCheckAt         pgtype.Timestamptz `json:"next_check_at"`
+}
+
+func (q *Queries) UpdateMonitorAfterCheck(ctx context.Context, arg UpdateMonitorAfterCheckParams) (Monitor, error) {
+	row := q.db.QueryRow(ctx, updateMonitorAfterCheck,
+		arg.ID,
+		arg.Status,
+		arg.ConsecutiveFailures,
+		arg.LastCheckAt,
+		arg.LastLatencyMs,
+		arg.NextCheckAt,
+	)
+	var i Monitor
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Url,
+		&i.IntervalSeconds,
+		&i.TimeoutMs,
+		&i.ExpectedStatusMin,
+		&i.ExpectedStatusMax,
+		&i.Enabled,
+		&i.ShowPublic,
+		&i.Status,
+		&i.ConsecutiveFailures,
+		&i.LastCheckAt,
+		&i.LastLatencyMs,
+		&i.NextCheckAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

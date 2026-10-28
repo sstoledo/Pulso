@@ -20,6 +20,18 @@ type CheckJob struct {
 	CompletedAt  pgtype.Timestamptz `json:"completed_at"`
 }
 
+type CheckResult struct {
+	ID           pgtype.UUID        `json:"id"`
+	CheckJobID   pgtype.UUID        `json:"check_job_id"`
+	MonitorID    pgtype.UUID        `json:"monitor_id"`
+	CheckedAt    pgtype.Timestamptz `json:"checked_at"`
+	Success      bool               `json:"success"`
+	HttpStatus   pgtype.Int4        `json:"http_status"`
+	LatencyMs    int32              `json:"latency_ms"`
+	ErrorSummary pgtype.Text        `json:"error_summary"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
 type Membership struct {
 	OrganizationID pgtype.UUID        `json:"organization_id"`
 	UserID         pgtype.UUID        `json:"user_id"`

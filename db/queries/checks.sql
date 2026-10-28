@@ -38,3 +38,34 @@ WHERE status = 'running'
 DELETE FROM check_jobs
 WHERE monitor_id = $1
   AND status = 'pending';
+
+-- name: InsertCheckResult :one
+INSERT INTO check_results (
+    check_job_id, monitor_id, checked_at, success, http_status, latency_ms, error_summary
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (check_job_id) DO NOTHING
+RETURNING *;
+
+-- name: CompleteCheckJob :execrows
+UPDATE check_jobs
+SET status = 'completed', completed_at = now()
+WHERE id = $1
+  AND status = 'running';
+
+-- name: LockMonitorByID :one
+SELECT *
+FROM monitors
+WHERE id = $1
+FOR UPDATE;
+
+-- name: UpdateMonitorAfterCheck :one
+UPDATE monitors
+SET status = $2,
+    consecutive_failures = $3,
+    last_check_at = $4,
+    last_latency_ms = $5,
+    next_check_at = CASE WHEN enabled THEN sqlc.arg(next_check_at)::timestamptz ELSE NULL END,
+    updated_at = now()
+WHERE id = $1
+RETURNING *;
