@@ -342,6 +342,35 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/OrganizationForbidden"
+  /api/v1/orgs/{organizationID}/incidents:
+    get:
+      operationId: listIncidents
+      summary: List organization or monitor incidents with pagination
+      tags: [Incidents]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OrganizationID"
+        - name: monitor_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        "200":
+          description: A page of incidents without monitor URLs or recipient emails.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IncidentList" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/OrganizationForbidden"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
 components:
   parameters:
     OrganizationID:
@@ -483,6 +512,30 @@ components:
               additionalProperties:
                 type: string
           additionalProperties: false
+      additionalProperties: false
+    Incident:
+      type: object
+      required: [id, monitor_id, opened_at, resolved_at, duration_ms, reason, status]
+      properties:
+        id: { type: string, format: uuid }
+        monitor_id: { type: string, format: uuid }
+        opened_at: { type: string, format: date-time }
+        resolved_at: { type: [string, 'null'], format: date-time }
+        duration_ms: { type: [integer, 'null'], format: int64 }
+        reason: { type: string }
+        status: { type: string, enum: [OPEN, RESOLVED] }
+      additionalProperties: false
+    IncidentList:
+      type: object
+      required: [items, total, page, page_size, total_pages]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Incident" }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        page_size: { type: integer, minimum: 1, maximum: 50 }
+        total_pages: { type: integer, minimum: 0 }
       additionalProperties: false
     MonitorInput:
       type: object
