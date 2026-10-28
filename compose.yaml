@@ -28,6 +28,10 @@ services:
       PULSO_SHUTDOWN_TIMEOUT: ${PULSO_SHUTDOWN_TIMEOUT:-10s}
       PULSO_WEB_ORIGIN: ${PULSO_WEB_ORIGIN:-http://localhost:5173}
       PULSO_COOKIE_SECURE: ${PULSO_COOKIE_SECURE:-false}
+      PULSO_WORKER_CONCURRENCY: ${PULSO_WORKER_CONCURRENCY:-10}
+      PULSO_WORKER_BATCH_SIZE: ${PULSO_WORKER_BATCH_SIZE:-20}
+      PULSO_WORKER_POLL_INTERVAL: ${PULSO_WORKER_POLL_INTERVAL:-1s}
+      PULSO_CHECK_ALLOW_PRIVATE_HOSTS: ${PULSO_CHECK_ALLOW_PRIVATE_HOSTS:-demo-target}
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,6 +54,19 @@ services:
       retries: 20
     restart: unless-stopped
 
+  demo-target:
+    build:
+      context: .
+    command: ["/usr/local/bin/demo-target"]
+    ports:
+      - "${DEMO_TARGET_PORT:-8081}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    restart: unless-stopped
+
   worker:
     build:
       context: .
@@ -58,6 +75,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      demo-target:
+        condition: service_healthy
     restart: unless-stopped
 
   web:

@@ -2,7 +2,7 @@
 
 Pulso is a multi-organization platform for monitoring APIs, websites, and services. The MVP will provide availability and latency metrics, incident tracking, email alerts, a private dashboard, and public status pages.
 
-The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. HTTP monitor management is available: authenticated users can create, list, edit, pause, resume and delete organization-scoped monitors through the API or dashboard. Automatic check execution is implemented in the next delivery.
+The current deliveries establish the executable foundation and identity flow: Go API and worker processes, PostgreSQL migrations, sqlc generation, a Vue SPA, Mailpit, Docker Compose, and CI quality checks. Users can register with an automatically created owner organization, log in, restore and revoke sessions, and access organization-scoped routes through backend membership checks. HTTP monitor management is available: authenticated users can create, list, edit, pause, resume and delete organization-scoped monitors through the API or dashboard. The worker now schedules and executes HTTP checks concurrently, records results and latency, and moves monitors between UNKNOWN, UP and DOWN. Incidents and notifications are implemented in the next delivery.
 
 ## Architecture
 
@@ -113,7 +113,39 @@ New monitors start in `UNKNOWN` state with no check timestamp or latency. Pause 
 
 Monitor routes are nested under `/api/v1/orgs/{organizationID}` and enforce both backend membership and organization filtering. A non-member organization returns 403; a foreign monitor ID within a member organization returns 404.
 
-URL validation in this delivery is syntactic. DNS/IP/redirect SSRF enforcement is part of the worker execution delivery; the management API does not execute monitored URLs.
+## Check execution
+
+The worker creates PostgreSQL-backed jobs for due monitors and claims them with `FOR UPDATE SKIP LOCKED`. Unique scheduling constraints allow one active job per monitor, and a unique result per job makes result effects idempotent. Stale running jobs return to the pending queue.
+
+The pool defaults to 10 concurrent checks and batches of 20. Configure it with `PULSO_WORKER_CONCURRENCY`, `PULSO_WORKER_BATCH_SIZE`, and `PULSO_WORKER_POLL_INTERVAL`. Every check has its own timeout and cancellation context.
+
+Each result stores checked time, success, nullable HTTP status, latency and a short safe error summary. Response bodies are discarded. A successful status within the expected range moves the monitor to UP; the second consecutive failure moves it to DOWN. One failure preserves the previous confirmed state. Pause cancels pending jobs and resume schedules a new one.
+
+The HTTP executor validates every redirect manually, resolves each destination once, connects to the validated IP, preserves the TLS hostname, and blocks loopback, private, link-local, unspecified, multicast and IPv4-mapped internal destinations by default. `PULSO_CHECK_ALLOW_PRIVATE_HOSTS` is an exact-host exception intended only for the local demo. Leave it empty in deployed environments.
+
+### Healthy/down demo
+
+The Compose `demo-target` service listens on `localhost:8081` and internally at `http://demo-target:8080`. Create a monitor with this URL:
+
+```text
+http://demo-target:8080/health
+```
+
+Use a 30-second interval to observe the worker quickly. Control the target without restarting it:
+
+```sh
+# Force failures
+curl -H 'Content-Type: application/json' \
+  -d '{"healthy":false}' \
+  http://localhost:8081/control
+
+# Restore health
+curl -H 'Content-Type: application/json' \
+  -d '{"healthy":true}' \
+  http://localhost:8081/control
+```
+
+After two failed checks, the dashboard shows DOWN. After the next healthy check, it shows UP again, with the latest latency and check timestamp. Incidents and email alerts are intentionally introduced in the next delivery.
 
 ## Local development without containers for the applications
 
@@ -178,4 +210,4 @@ make compose-config   # Validate Compose configuration
 
 ## Demonstration status
 
-The current smoke path starts the stack, applies migrations, verifies API health and readiness, registers an owner, restores the session through `/me`, and completes monitor create, summary, pause, resume, edit and delete operations through the Vite proxy. The complete automatic-check/incident/alert demonstration will be added with the corresponding MVP deliveries.
+The current smoke path starts the stack, applies migrations, registers an owner, creates a monitor and verifies automatic healthy, repeated-failure and recovery checks with their persisted results. Incident and alert delivery will be added next.

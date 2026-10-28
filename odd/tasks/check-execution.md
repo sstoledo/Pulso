@@ -23,8 +23,8 @@ S5. "Pruebas del worker con servidores HTTP de prueba.", "Pruebas de integració
 - [x] T2c (S3) — inline on `feat/ssrf-redirects` — manually revalidated redirects and regression coverage — commit: `f8b94f4`.
 - [x] T3a (S1-S5) — inline on `feat/check-scheduler` — scheduler, claiming, stale recovery and pause behavior — commit: recording after commit.
 - [x] T3b (S1-S5) — inline on `feat/check-result-worker` — transactional results, idempotency and state transitions — commit: `faf536e`.
-- [x] T3c (S1-S5) — inline on `feat/check-worker-v2` — bounded worker pool, runtime configuration and concurrency coverage — commit: recording after commit.
-- [ ] T4 (S5) — inline on `docs/check-execution-v2` — controllable demo target, README/operations and verification documentation — commit: pending.
+- [x] T3c (S1-S5) — inline on `feat/check-worker-v2` — bounded worker pool, runtime configuration and concurrency coverage — commit: `2403266`.
+- [x] T4 (S5) — inline on `docs/check-execution-v2` — controllable demo target, README/operations and verification documentation — commit: recording after commit.
 - [ ] T5 (S1-S5) — inline checks plus delegated independent verification for high-risk items 1, 2, 4 and 5 — restructured full-feature verification — evidence: pending.
 
 ## Log
@@ -49,4 +49,6 @@ L9. Correction evidence: all three regression classes were RED before the fix. R
 
 L10. Final verification: the independent bounded recheck at `2020f73` returned PASS for S1 and S3. A flushed 200 with a stalled body fails with `request timeout`; all additional internal/mapped ranges are denied; production private-host configuration fails explicitly with the documented error. Parent spot check reran the focused executor regressions successfully. Prior independent MET verdicts stand for S2, S4 and S5. Scratch resources were cleaned. Delivery 3 is complete and must now be submitted as Summary-only stacked PRs.
 
-L11. 2026-10-28 — User selected "Dividir antes de abrir" for the three oversized PRs. Replace the unpublished five-branch stack with seven cohesive branches: check job queue, check result store, HTTP executor, SSRF transport, scheduler, worker, and demo/docs. Preserve the original verified behavior and regression coverage, then rerun independent verification on the restructured tip before submission. The original branches remain unpublished backups during restructuring.
+L11. 2026-10-28 — User selected "Dividir antes de abrir" for the three oversized PRs. Replace the unpublished five-branch stack with cohesive branches: check job queue, check result store, HTTP executor, SSRF transport, scheduler, worker, and demo/docs. Preserve the original verified behavior and regression coverage, then rerun independent verification on the restructured tip before submission. The original branches remain unpublished backups during restructuring.
+
+L12. Restructure evidence: SSRF redirects and worker processing were split further to keep every PR under 400 authored lines. Final sizes: job queue 248, result store 211, HTTP executor 150, SSRF transport 372, redirects 86, scheduler 215, result worker 307, bounded pool 217. Fresh migrations 4 and 5 applied in isolated PostgreSQL. Scheduler, result, pool, config and demo tests passed; the restructured Compose demo again produced UP, preserved UP, DOWN and recovery UP with four results. `make check` passed.
